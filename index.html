@@ -1,0 +1,1332 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="Orbit: app de desktop para Windows que junta finanças, leitura, faculdade, agenda, e-mail e o que mais você criar, com o Ori, uma IA que mora na tela.">
+<meta property="og:title" content="Orbit">
+<meta property="og:description" content="A sua vida inteira, em órbita. App de desktop com IA, totalmente customizável.">
+<meta name="theme-color" content="#070a13">
+<title>Orbit: a sua vida inteira, em órbita</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Hanken+Grotesk:wght@400;500;600;700&family=Martian+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: uma viagem vertical pelo céu do Orbit. Órbita 3D presa à tela (herói + passeio pelos módulos + revelação de novas órbitas),
+   faixa lateral guiada pela rolagem, janela do app que cresce com o Ori, capítulos de casos de uso, download, conta e mural. */
+:root{
+  color-scheme:dark;
+  --ink:#070a13; --ink-2:#090e1a; --sky:#0d1220; --elev:#131929;
+  --fg:#eceef4; --fg-2:#a3abbe; --fg-3:#81899d;
+  --mist:168 186 255;
+  --line-1:rgb(var(--mist) / .08); --line-2:rgb(var(--mist) / .14); --line-3:rgb(var(--mist) / .24);
+  --star:#edd5a3; --star-hot:#fff3d6;
+  --c-finance:#80e2b9; --c-books:#f4c677; --c-estudos:#f99c7c; --c-agenda:#cbe36a; --c-email:#6fd3e6; --c-acervo:#f8a7d4; --c-status:#9dc9f7; --c-stock:#b7a0fb;
+  --ok:#6ed889; --warn:#f9aa60; --info:#6fb5ef;
+  --f-display:"Instrument Serif","Iowan Old Style",Georgia,serif;
+  --f-sans:"Hanken Grotesk","Segoe UI",system-ui,sans-serif;
+  --f-mono:"Martian Mono",ui-monospace,Consolas,monospace;
+  --ease-orbit:cubic-bezier(.22,1,.36,1);
+  --gutter-l:max(16px,env(safe-area-inset-left,0px));
+  --gutter-r:max(16px,env(safe-area-inset-right,0px));
+}
+*{box-sizing:border-box}
+img{max-width:100%}
+[hidden]{display:none!important}
+html{background:var(--ink)}
+body{margin:0;background:var(--ink);color:var(--fg);font:400 16px/1.6 var(--f-sans);-webkit-font-smoothing:antialiased;overflow-x:clip}
+h1,h2,h3,h4{margin:0;font-weight:400;text-wrap:balance}
+p{margin:0}
+a{color:inherit}
+button,input,textarea,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--star);outline-offset:3px;border-radius:4px}
+.eyebrow{font:500 11px/1.5 var(--f-mono);letter-spacing:.14em;text-transform:uppercase;color:var(--fg-3)}
+.serif{font-family:var(--f-display)}
+.wrap{max-width:1240px;margin:0 auto;padding-left:var(--gutter-l);padding-right:var(--gutter-r)}
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:currentColor;box-shadow:0 0 10px currentColor;flex:none}
+
+/* céu de fundo, barato, para a página inteira */
+#ceu{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none}
+main,footer{position:relative;z-index:1}
+
+/* progresso: um fio com um astro na ponta */
+.fio{position:fixed;left:0;right:0;top:0;height:1px;z-index:60;background:var(--line-1);pointer-events:none}
+.fio i{position:absolute;left:0;top:0;height:1px;width:0;background:linear-gradient(90deg,transparent,var(--star))}
+.fio i::after{content:"";position:absolute;right:-3px;top:-2.5px;width:6px;height:6px;border-radius:50%;background:var(--star-hot);box-shadow:0 0 10px 2px var(--star)}
+
+/* navegação */
+.nav{position:fixed;left:0;right:0;top:0;z-index:50;padding-top:env(safe-area-inset-top,0px);transition:background .5s var(--ease-orbit),border-color .5s}
+.nav.solid{background:rgb(7 10 19 / .72);backdrop-filter:blur(18px) saturate(1.3);-webkit-backdrop-filter:blur(18px) saturate(1.3);border-bottom:1px solid var(--line-1)}
+.nav .wrap{display:flex;align-items:center;gap:28px;height:64px}
+.marca{display:flex;align-items:center;gap:10px;text-decoration:none}
+.marca b{font:400 26px/1 var(--f-display);letter-spacing:-.01em}
+.nav .links{display:flex;gap:26px;margin-left:12px}
+.nav .links a{text-decoration:none;color:var(--fg-2);font-size:14px;transition:color .2s}
+.nav .links a:hover{color:var(--fg)}
+.nav .sp{flex:1}
+.nav .entrar{text-decoration:none;font-size:14px;color:var(--fg-2)}
+.nav .entrar:hover{color:var(--fg)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;height:46px;padding:0 22px;border-radius:999px;font:600 15px/1 var(--f-sans);text-decoration:none;border:0;cursor:pointer;white-space:nowrap;transition:transform .3s var(--ease-orbit),box-shadow .3s,background .3s,border-color .3s}
+.btn.pri{background:var(--star);color:#1d1405;box-shadow:0 0 0 rgb(237 213 163 / 0)}
+.btn.pri:hover{transform:translateY(-1px);box-shadow:0 10px 40px -6px rgb(237 213 163 / .55)}
+.btn.lin{border:1px solid var(--line-3);background:rgb(7 10 19 / .3);color:var(--fg)}
+.btn.lin:hover{border-color:rgb(var(--mist) / .45)}
+.btn.sm{height:38px;padding:0 16px;font-size:14px}
+.btn svg{flex:none}
+@media (max-width:860px){.nav .links,.nav .entrar{display:none}}
+
+/* ================= ÓRBITA (herói + passeio) ================= */
+#orbita{position:relative;height:1000vh}
+#orbita .pin{position:sticky;top:0;height:100vh;height:100svh;overflow:hidden}
+#cosmos{position:absolute;inset:0;width:100%;height:100%;display:block}
+.no-gl #cosmos{display:none}
+.no-gl #orbita .pin{background:radial-gradient(70% 60% at 50% 62%,#1a2448 0%,#0b1124 45%,var(--ink) 80%)}
+.veu{position:absolute;inset:0;pointer-events:none;background:linear-gradient(90deg,rgb(7 10 19 / .86) 0%,rgb(7 10 19 / .6) 30%,transparent 56%);opacity:var(--tour,0)}
+@media (max-width:860px){.veu{background:linear-gradient(0deg,rgb(7 10 19 / .9) 0%,rgb(7 10 19 / .6) 38%,transparent 60%)}}
+.vinheta{position:absolute;inset:0;pointer-events:none;background:radial-gradient(120% 90% at 50% 55%,transparent 55%,rgb(4 6 12 / .7) 100%)}
+.heroi{position:absolute;inset:0;display:grid;align-content:start;justify-items:center;text-align:center;padding-top:max(17vh,96px);padding-left:var(--gutter-l);padding-right:var(--gutter-r);pointer-events:none;will-change:transform,opacity}
+.heroi > *{pointer-events:auto}
+.heroi{isolation:isolate}
+.heroi::before{content:"";position:absolute;left:50%;top:max(10vh,60px);width:min(1200px,130vw);height:min(720px,80vh);transform:translateX(-50%);background:radial-gradient(closest-side,rgb(7 10 19 / .62),rgb(7 10 19 / .3) 60%,transparent);z-index:-1;pointer-events:none}
+.heroi .eyebrow{color:var(--fg-2);display:flex;align-items:center;gap:10px}
+.heroi h1{font:400 clamp(50px,8.6vw,138px)/.92 var(--f-display);letter-spacing:-.02em;margin-top:22px;max-width:13ch}
+.heroi h1 em{color:var(--star);font-style:italic;text-shadow:0 0 60px rgb(237 213 163 / .35)}
+.heroi .sub{margin-top:26px;max-width:58ch;color:var(--fg-2);font-size:clamp(16px,1.35vw,19px);line-height:1.6}
+.heroi .acoes{display:flex;gap:12px;margin-top:34px;flex-wrap:wrap;justify-content:center}
+.dica{position:absolute;left:50%;bottom:max(28px,env(safe-area-inset-bottom,0px));transform:translateX(-50%);display:grid;justify-items:center;gap:12px;font:500 10.5px/1 var(--f-mono);letter-spacing:.16em;color:var(--fg-3);text-transform:uppercase;pointer-events:none;white-space:nowrap}
+.dica i{width:1px;height:46px;background:linear-gradient(var(--line-3),transparent);position:relative;overflow:hidden}
+.dica i::after{content:"";position:absolute;left:-2px;top:0;width:5px;height:5px;border-radius:50%;background:var(--star);box-shadow:0 0 8px var(--star);animation:desce 2.4s var(--ease-orbit) infinite}
+@keyframes desce{0%{transform:translateY(-6px);opacity:0}20%{opacity:1}100%{transform:translateY(46px);opacity:0}}
+
+.rotulos{position:absolute;inset:0;pointer-events:none}
+.rotulo{position:absolute;left:0;top:0;transform:translate(-50%,0);white-space:nowrap;font:500 10px/1 var(--f-mono);letter-spacing:.16em;color:var(--fg-2);text-transform:uppercase;display:flex;align-items:center;gap:7px;will-change:transform,opacity}
+.rotulo .dot{width:5px;height:5px}
+
+.painel{position:absolute;left:max(6vw,var(--gutter-l));top:50%;width:min(470px,40vw);transform:translateY(-50%);pointer-events:none;will-change:transform,opacity;opacity:0}
+.painel .cab{display:flex;align-items:center;gap:10px}
+.painel .estado{font:500 10px/1 var(--f-mono);letter-spacing:.14em;padding:6px 9px;border-radius:999px;border:1px solid currentColor;text-transform:uppercase}
+.painel h2{font:400 clamp(58px,7vw,108px)/.9 var(--f-display);letter-spacing:-.02em;margin-top:18px}
+.painel .frase{font:400 clamp(20px,1.9vw,27px)/1.25 var(--f-display);font-style:italic;color:var(--fg);margin-top:14px;max-width:22ch}
+.painel ul{list-style:none;margin:26px 0 0;padding:0;display:grid}
+.painel li{display:grid;grid-template-columns:18px 1fr;gap:12px;padding:12px 0;border-top:1px solid var(--line-2);color:var(--fg-2);font-size:15px;line-height:1.5}
+.painel li::before{content:"";width:5px;height:5px;margin-top:9px;border-radius:50%;background:var(--acc);box-shadow:0 0 8px var(--acc)}
+.painel .coord{margin-top:18px;font:400 10.5px/1 var(--f-mono);letter-spacing:.14em;color:var(--fg-3)}
+
+.trilho{position:absolute;left:50%;bottom:max(22px,env(safe-area-inset-bottom,0px));transform:translateX(-50%);display:flex;gap:26px;opacity:0;transition:opacity .4s}
+.trilho.on{opacity:1}
+.trilho button{display:flex;flex-direction:column-reverse;align-items:center;justify-content:flex-end;gap:10px;background:none;border:0;padding:7px 0;cursor:pointer;font:500 10px/1 var(--f-mono);letter-spacing:.16em;text-transform:uppercase;color:var(--fg-3);transition:color .3s}
+.trilho button i{width:18px;height:1px;background:var(--line-3);position:relative;transition:width .4s var(--ease-orbit),background .3s}
+.trilho button.on{color:var(--fg)}
+.trilho button.on i{width:34px;background:var(--acc)}
+.trilho button.on i::after{content:"";position:absolute;right:-2px;top:-2px;width:5px;height:5px;border-radius:50%;background:var(--acc);box-shadow:0 0 8px var(--acc)}
+.trilho button:hover{color:var(--fg-2)}
+
+.final{position:absolute;inset:0;display:grid;place-content:center;justify-items:center;text-align:center;padding-left:var(--gutter-l);padding-right:var(--gutter-r);pointer-events:none;opacity:0;will-change:opacity,transform}
+.final::before{content:"";position:absolute;left:50%;top:50%;width:min(1100px,130vw);height:min(620px,75vh);transform:translate(-50%,-50%);background:radial-gradient(closest-side,rgb(7 10 19 / .6),rgb(7 10 19 / .25) 60%,transparent);z-index:-1}
+.final{isolation:isolate}
+.final h2{font:400 clamp(46px,7vw,112px)/.95 var(--f-display);letter-spacing:-.02em;max-width:14ch}
+.final h2 em{color:var(--star)}
+.final p{margin-top:22px;max-width:52ch;color:var(--fg-2);font-size:clamp(16px,1.3vw,19px)}
+
+@media (max-width:860px){
+  .painel{left:var(--gutter-l);right:var(--gutter-r);width:auto;top:auto;bottom:max(28px,env(safe-area-inset-bottom,0px));transform:none;padding:22px 0 0;background:linear-gradient(transparent,rgb(7 10 19 / .85) 30%)}
+  .painel h2{font-size:60px;margin-top:10px}
+  .painel ul{margin-top:14px}
+  .painel li{padding:9px 0;font-size:14px}
+  .painel li:nth-child(3){display:none}
+  .painel .coord{display:none}
+  .trilho{display:none}
+}
+
+/* ================= seções comuns ================= */
+.secao{padding-block:clamp(96px,14vw,180px)}
+.titulo{display:grid;gap:18px;max-width:780px}
+.titulo h2{font:400 clamp(44px,6.2vw,92px)/.95 var(--f-display);letter-spacing:-.02em}
+.titulo h2 em{color:var(--star)}
+.titulo p{color:var(--fg-2);font-size:clamp(16px,1.3vw,19px);max-width:60ch}
+.surge{transition:opacity 1.1s var(--ease-orbit),transform 1.1s var(--ease-orbit)}
+.js .surge.fora{opacity:.001;transform:translateY(36px)}
+
+/* ================= INFINITO (faixa lateral) ================= */
+#infinito{position:relative;height:420vh}
+#infinito .pin{position:sticky;top:0;height:100vh;height:100svh;overflow:hidden;display:grid;grid-template-rows:auto 1fr auto;padding-block:max(96px,13vh) 6vh}
+#infinito .titulo{padding-left:var(--gutter-l);padding-right:var(--gutter-r);margin-left:max(0px,calc((100vw - 1240px)/2))}
+.pista{display:flex;gap:22px;align-items:center;padding-left:max(var(--gutter-l),calc((100vw - 1240px)/2 + 16px));will-change:transform}
+.pedido{flex:none;width:clamp(280px,27vw,380px);min-height:clamp(250px,32vh,320px);display:grid;align-content:space-between;gap:24px;padding:26px 26px 22px;border:1px solid var(--line-2);border-radius:8px;background:linear-gradient(170deg,rgb(var(--mist) / .05),rgb(var(--mist) / .01) 60%);position:relative;overflow:hidden}
+.pedido::before{content:"";position:absolute;width:220px;height:220px;right:-90px;top:-90px;border-radius:50%;background:radial-gradient(var(--acc),transparent 70%);opacity:.14}
+.pedido .mod{display:flex;align-items:center;gap:9px;color:var(--acc);font:500 10.5px/1 var(--f-mono);letter-spacing:.14em;text-transform:uppercase}
+.pedido q{font:400 clamp(26px,2.3vw,34px)/1.12 var(--f-display);quotes:"“" "”";color:var(--fg)}
+.pedido .resp{display:grid;grid-template-columns:22px 1fr;gap:10px;align-items:start;padding-top:14px;border-top:1px solid var(--line-1);color:var(--fg-2);font-size:14px;line-height:1.45}
+.pedido .resp svg{margin-top:-1px}
+.pedido.fim{border-style:dashed;background:none;place-content:center;text-align:center;justify-items:center}
+.pedido.fim q{font-style:italic;color:var(--star)}
+.palavras{display:flex;gap:42px;white-space:nowrap;font:400 clamp(54px,8vw,124px)/1 var(--f-display);font-style:italic;color:transparent;-webkit-text-stroke:1px rgb(var(--mist) / .28);will-change:transform;padding-left:4vw}
+.palavras span{display:inline-flex;align-items:center;gap:42px}
+.palavras span::after{content:"";width:10px;height:10px;border-radius:50%;background:var(--star);box-shadow:0 0 18px var(--star);-webkit-text-stroke:0}
+.palavras span.cheia{color:var(--fg);-webkit-text-stroke:0}
+
+/* ================= ORI (janela que cresce) ================= */
+#ori{position:relative;height:340vh}
+#ori .pin{position:sticky;top:0;height:100vh;height:100svh;overflow:hidden;display:grid;place-items:center;perspective:1600px}
+.ori-fundo{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font:400 clamp(240px,42vw,680px)/1 var(--f-display);font-style:italic;color:transparent;-webkit-text-stroke:1px rgb(237 213 163 / .14);white-space:nowrap;pointer-events:none;will-change:transform}
+.ori-cab{position:absolute;top:max(92px,11vh);left:0;right:0;text-align:center;display:grid;justify-items:center;gap:12px;padding-left:var(--gutter-l);padding-right:var(--gutter-r);will-change:opacity,transform}
+.ori-cab h2{font:400 clamp(40px,5vw,76px)/1 var(--f-display);letter-spacing:-.015em}
+.ori-cab h2 em{color:var(--star)}
+.janela{position:relative;width:min(1180px,92vw);max-width:100%;aspect-ratio:16/10;border-radius:12px;border:1px solid var(--line-3);overflow:hidden;box-shadow:0 0 0 1px rgb(0 0 0 / .5),0 60px 140px -20px rgb(0 0 0 / .8),0 0 120px -30px rgb(237 213 163 / .25);transform-origin:50% 30%;will-change:transform;background:var(--ink)}
+.janela .palco{position:absolute;left:0;top:0;width:1280px;height:800px;transform-origin:0 0;transform:scale(var(--s,.5))}
+.tecla-flut{position:absolute;right:max(4vw,var(--gutter-r));bottom:9vh;display:flex;align-items:center;gap:8px;padding:12px 16px;border:1px solid var(--line-3);border-radius:999px;background:rgb(13 18 32 / .8);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);font:500 11px/1 var(--f-mono);letter-spacing:.08em;color:var(--fg-2);opacity:0;transform:translateY(20px);transition:opacity .6s var(--ease-orbit),transform .6s var(--ease-orbit)}
+.tecla-flut.on{opacity:1;transform:none}
+kbd{font:500 11px/1 var(--f-mono);padding:6px 8px;border:1px solid var(--line-3);border-bottom-width:2px;border-radius:5px;color:var(--fg);background:rgb(var(--mist) / .04)}
+
+/* o app dentro da janela (1280 × 800) */
+.app{position:absolute;inset:0;background:radial-gradient(120% 90% at 30% 20%,#0f1630 0%,var(--ink) 60%);color:var(--fg);font-family:var(--f-sans)}
+.app .barra{position:absolute;left:0;right:0;top:0;height:44px;display:flex;align-items:center;gap:14px;padding:0 20px;font:500 11px/1 var(--f-mono);letter-spacing:.12em;color:var(--fg-3);border-bottom:1px solid var(--line-1);background:var(--ink-2)}
+.app .barra b{color:var(--fg);font-weight:500}
+.app .barra .sp{flex:1}
+.app .barra .ctl{display:flex;gap:16px}
+.app .barra .ctl i{width:10px;height:1px;background:var(--fg-3);display:block}
+.app .lado{position:absolute;left:0;top:44px;bottom:0;width:68px;border-right:1px solid var(--line-1);display:grid;align-content:start;justify-items:center;gap:8px;padding-top:18px;background:var(--ink-2)}
+.app .lado span{width:40px;height:40px;display:grid;place-items:center;border-radius:8px;color:var(--fg-3);position:relative}
+.app .lado span.on{color:var(--c-finance)}
+.app .lado span.on::before{content:"";position:absolute;left:-14px;top:17px;width:6px;height:6px;border-radius:50%;background:var(--c-finance);box-shadow:0 0 8px var(--c-finance)}
+.app .conteudo{position:absolute;left:68px;top:44px;bottom:0;right:390px;padding:34px 44px;display:grid;align-content:start;gap:28px}
+.app .conteudo h3{font:400 66px/1 var(--f-display);letter-spacing:-.01em}
+.app .conteudo h3 em{color:var(--c-finance)}
+.app .sub{color:var(--fg-2);font-size:15px;margin-top:10px}
+.app .bloco{border-top:1px solid var(--line-2);padding-top:14px}
+.app .bloco .lab{display:flex;justify-content:space-between;font:500 10px/1 var(--f-mono);letter-spacing:.14em;color:var(--fg-3);text-transform:uppercase}
+.app .linha{display:grid;grid-template-columns:1fr auto;gap:16px;align-items:center;padding:14px 0;border-bottom:1px solid var(--line-1);transition:background .8s var(--ease-orbit),box-shadow .8s}
+.app .linha .t{font:600 16px/1.25 var(--f-sans)}
+.app .linha .m{font:400 10.5px/1.4 var(--f-mono);color:var(--fg-3);margin-top:6px;letter-spacing:.06em}
+.app .linha .n{font:400 30px/1 var(--f-display);font-variant-numeric:tabular-nums}
+.app .linha.nova{max-height:0;padding:0;overflow:hidden;opacity:0;transition:max-height .9s var(--ease-orbit),padding .9s var(--ease-orbit),opacity .9s}
+.app.f4 .linha.nova{max-height:90px;padding:14px 0 14px 14px;opacity:1;background:rgb(128 226 185 / .06);box-shadow:inset 2px 0 0 var(--c-finance)}
+.app .orc{display:grid;gap:12px}
+.app .orc .r{display:grid;grid-template-columns:120px 1fr 52px;gap:16px;align-items:center;font-size:13px;color:var(--fg-2)}
+.app .orc .r b{font:400 11px/1 var(--f-mono);text-align:right;color:var(--fg);font-variant-numeric:tabular-nums}
+.app .trilha{height:2px;background:var(--line-2);position:relative}
+.app .trilha i{position:absolute;left:0;top:0;bottom:0;background:var(--acc,var(--c-finance));transition:width 1.2s var(--ease-orbit)}
+.app .trilha i::after{content:"";position:absolute;right:-3px;top:-2px;width:6px;height:6px;border-radius:50%;background:inherit;box-shadow:0 0 8px var(--acc,var(--c-finance))}
+.app .doca{position:absolute;right:0;top:44px;bottom:0;width:390px;border-left:1px solid var(--line-2);background:linear-gradient(180deg,#0d1328,#090d1c);display:flex;flex-direction:column}
+.app .doca .dh{display:flex;align-items:center;gap:12px;padding:16px 18px;border-bottom:1px solid var(--line-1)}
+.app .doca .dh .nome{font:400 28px/1 var(--f-display);font-style:italic}
+.app .doca .dh .st{font:500 10px/1 var(--f-mono);letter-spacing:.12em;color:var(--fg-3);margin-top:5px;transition:color .4s}
+.app.f4 .doca .dh .st{color:var(--ok)}
+.app .log{flex:1;padding:20px 18px;display:flex;flex-direction:column;gap:16px;overflow:hidden}
+.app .log > *{opacity:0;transform:translateY(14px);transition:opacity .7s var(--ease-orbit),transform .7s var(--ease-orbit)}
+.app .voce{align-self:flex-end;max-width:82%;padding:11px 15px;border-radius:14px 14px 4px 14px;background:rgb(var(--mist) / .1);font-size:15px}
+.app .passos{display:grid;gap:7px;font:400 11px/1.45 var(--f-mono);color:var(--fg-3);padding-left:12px;border-left:1px solid var(--line-3)}
+.app .passos span{color:var(--ok)}
+.app .recibo{border:1px solid var(--line-3);border-radius:6px;padding:15px;display:grid;gap:5px;background:rgb(128 226 185 / .03)}
+.app .recibo .v{font:400 38px/1 var(--f-display)}
+.app .recibo .d{font:400 11px/1.5 var(--f-mono);color:var(--fg-2)}
+.app .txt{font-size:15px;line-height:1.55;color:var(--fg)}
+.app .chips{display:flex;flex-wrap:wrap;gap:8px}
+.app .chip{font:500 13px/1 var(--f-sans);padding:9px 13px;border-radius:999px;border:1px solid var(--line-3)}
+.app .chip.pri{border-color:rgb(237 213 163 / .5);color:var(--star)}
+.app.f1 .log .a1,.app.f2 .log .a2,.app.f3 .log .a3,.app.f4 .log .a4,.app.f5 .log .a5,.app.f6 .log .a6{opacity:1;transform:none}
+.app .compor{margin:0 18px 18px;border:1px solid var(--line-3);border-radius:10px;padding:13px 14px;display:flex;align-items:center;gap:10px;color:var(--fg-3);font-size:14px}
+.app .compor .onda{display:flex;gap:3px;align-items:center;margin-left:auto;height:18px}
+.app .compor .onda i{width:2px;border-radius:2px;background:var(--star);height:30%;animation:onda 1.1s ease-in-out infinite}
+.app .compor .onda i:nth-child(2){animation-delay:-.2s}.app .compor .onda i:nth-child(3){animation-delay:-.45s}.app .compor .onda i:nth-child(4){animation-delay:-.7s}.app .compor .onda i:nth-child(5){animation-delay:-.9s}
+@keyframes onda{50%{height:100%}}
+
+/* recursos do Ori */
+.recursos{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0 48px;margin-top:72px}
+.recurso{display:grid;grid-template-columns:44px 1fr;gap:4px 18px;padding:26px 0 30px;border-top:1px solid var(--line-2)}
+.recurso svg{grid-row:span 2;color:var(--star)}
+.recurso h3{font:600 18px/1.3 var(--f-sans)}
+.recurso p{color:var(--fg-2);font-size:15px;line-height:1.55}
+@media (max-width:900px){.recursos{grid-template-columns:1fr 1fr}}
+@media (max-width:600px){.recursos{grid-template-columns:1fr}}
+
+/* ================= CUSTOMIZAR ================= */
+.custom{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:56px;align-items:center;margin-top:64px}
+@media (max-width:960px){.custom{grid-template-columns:1fr}}
+.controles{display:grid;gap:30px;min-width:0}
+.grupo{display:grid;gap:12px;border-top:1px solid var(--line-2);padding-top:16px}
+.grupo .eyebrow{display:flex;justify-content:space-between;gap:12px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chipm{display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 14px 0 12px;border-radius:999px;border:1px solid var(--line-2);background:none;cursor:pointer;font:500 13.5px/1 var(--f-sans);color:var(--fg-2);transition:border-color .25s,color .25s,background .25s}
+.chipm .dot{width:6px;height:6px;color:var(--acc);box-shadow:none;opacity:.45;transition:opacity .25s,box-shadow .25s}
+.chipm[aria-pressed="true"]{border-color:color-mix(in oklab,var(--acc) 55%,transparent);color:var(--fg);background:color-mix(in oklab,var(--acc) 8%,transparent)}
+.chipm[aria-pressed="true"] .dot{opacity:1;box-shadow:0 0 8px var(--acc)}
+.chipm:hover{border-color:var(--line-3)}
+.chipm.add{border-style:dashed;color:var(--fg-3)}
+.grupo.duas{grid-template-columns:1fr 1fr;align-items:start;gap:24px}
+@media (max-width:560px){.grupo.duas{grid-template-columns:1fr}}
+.seg{display:inline-flex;border:1px solid var(--line-2);border-radius:999px;padding:3px;gap:2px;width:max-content;max-width:100%}
+.seg button{border:0;background:none;height:34px;padding:0 16px;border-radius:999px;cursor:pointer;font:500 13.5px/1 var(--f-sans);color:var(--fg-2);transition:background .25s,color .25s}
+.seg button[aria-pressed="true"]{background:rgb(var(--mist) / .1);color:var(--fg)}
+.luzes{display:flex;gap:10px}
+.luz{width:34px;height:34px;border-radius:50%;border:1px solid var(--line-2);background:none;cursor:pointer;display:grid;place-items:center;transition:border-color .25s}
+.luz i{width:14px;height:14px;border-radius:50%;background:var(--acc);box-shadow:0 0 12px var(--acc)}
+.luz[aria-pressed="true"]{border-color:var(--acc)}
+.carta{position:relative;aspect-ratio:7/6;max-width:100%;border:1px solid var(--line-2);border-radius:10px;overflow:hidden;background:radial-gradient(80% 70% at 50% 50%,#101833 0%,#0a0f1f 55%,var(--ink) 100%)}
+.carta canvas{position:absolute;inset:0;width:100%;height:100%}
+.carta .leg{position:absolute;left:16px;right:16px;bottom:14px;display:flex;justify-content:space-between;gap:12px;font:500 10px/1.4 var(--f-mono);letter-spacing:.14em;color:var(--fg-3);text-transform:uppercase;pointer-events:none}
+.carta .tit{position:absolute;left:18px;top:16px;font:400 28px/1 var(--f-display);font-style:italic;pointer-events:none}
+.lista-custom{list-style:none;padding:0;margin:0;display:grid}
+.lista-custom li{display:grid;grid-template-columns:18px 1fr;gap:12px;padding:12px 0;border-top:1px solid var(--line-1);color:var(--fg-2);font-size:15px}
+.lista-custom li::before{content:"";width:5px;height:5px;margin-top:9px;border-radius:50%;background:var(--star);box-shadow:0 0 8px var(--star)}
+
+/* ================= NÚMEROS ================= */
+.numeros{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border-top:1px solid var(--line-2);margin-top:64px}
+.numero{padding:28px 24px 8px 0;display:grid;gap:10px;align-content:start}
+.numero + .numero{border-left:1px solid var(--line-1);padding-left:24px}
+.numero b{font:400 clamp(64px,7vw,108px)/.9 var(--f-display);letter-spacing:-.02em;font-variant-numeric:tabular-nums;font-weight:400}
+.numero b small{font-size:.45em;color:var(--fg-2)}
+.numero span{color:var(--fg-2);font-size:15px;max-width:24ch}
+@media (max-width:860px){.numeros{grid-template-columns:1fr 1fr}.numero:nth-child(3){border-left:0;padding-left:0}.numero{border-top:1px solid var(--line-1)}}
+
+/* ================= DOWNLOAD ================= */
+#baixar{position:relative;overflow:hidden}
+.baixar{position:relative;display:grid;justify-items:center;text-align:center;gap:22px;padding-block:clamp(110px,15vw,200px)}
+.baixar .anel{position:absolute;left:50%;top:50%;width:min(1100px,150vw);aspect-ratio:1;transform:translate(-50%,-50%);pointer-events:none}
+.baixar h2{font:400 clamp(60px,10vw,168px)/.88 var(--f-display);letter-spacing:-.025em;position:relative}
+.baixar h2 em{color:var(--star);text-shadow:0 0 80px rgb(237 213 163 / .4)}
+.baixar p{color:var(--fg-2);max-width:50ch;position:relative;font-size:18px}
+.baixar .acoes{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;position:relative;margin-top:10px}
+.baixar .btn.pri{height:58px;padding:0 30px;font-size:17px}
+.baixar .meta{display:flex;flex-wrap:wrap;justify-content:center;gap:10px 26px;font:500 10.5px/1.5 var(--f-mono);letter-spacing:.12em;color:var(--fg-3);text-transform:uppercase;position:relative}
+.baixar .meta span{display:inline-flex;align-items:center;gap:8px}
+.baixar .meta .dot{width:5px;height:5px;color:var(--ok)}
+
+/* ================= CONTA ================= */
+.conta{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,480px);gap:72px;align-items:start;margin-top:12px}
+@media (max-width:960px){.conta{grid-template-columns:1fr;gap:48px}}
+.folha{border:1px solid var(--line-2);border-radius:10px;background:linear-gradient(180deg,rgb(19 25 41 / .82),rgb(13 18 32 / .82));backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);padding:8px 28px 28px;box-shadow:0 0 0 1px rgb(0 0 0 / .3),0 40px 90px -30px rgb(0 0 0 / .8);min-width:0}
+.abas{display:flex;gap:28px;border-bottom:1px solid var(--line-2);margin-bottom:24px}
+.abas button{position:relative;background:none;border:0;padding:18px 0 16px;cursor:pointer;font:600 15px/1 var(--f-sans);color:var(--fg-3);transition:color .25s}
+.abas button[aria-selected="true"]{color:var(--fg)}
+.abas button[aria-selected="true"]::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:1px;background:var(--star)}
+.abas button[aria-selected="true"]::before{content:"";position:absolute;left:50%;bottom:-3.5px;width:6px;height:6px;margin-left:-3px;border-radius:50%;background:var(--star);box-shadow:0 0 8px var(--star)}
+.campo{display:grid;gap:8px;margin-bottom:18px}
+.campo label{font:500 13px/1 var(--f-sans);color:var(--fg-2)}
+.campo input,.campo textarea,.campo select{width:100%;height:46px;padding:0 14px;border-radius:8px;border:1px solid var(--line-2);background:rgb(7 10 19 / .6);font-size:15px;transition:border-color .25s,box-shadow .25s}
+.campo textarea{height:auto;min-height:118px;padding:12px 14px;resize:vertical;line-height:1.5}
+.campo select{appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--fg-3) 50%),linear-gradient(135deg,var(--fg-3) 50%,transparent 50%);background-position:calc(100% - 20px) 20px,calc(100% - 15px) 20px;background-size:5px 5px;background-repeat:no-repeat}
+.campo input:focus,.campo textarea:focus,.campo select:focus{outline:none;border-color:rgb(237 213 163 / .6);box-shadow:0 0 0 3px rgb(237 213 163 / .12)}
+.campo .ajuda{font-size:13px;color:var(--fg-3)}
+.campo .erro{font-size:13px;color:#f17070}
+.forca{height:2px;background:var(--line-2);position:relative;margin-top:2px}
+.forca i{position:absolute;left:0;top:0;bottom:0;width:0;background:var(--acc,var(--star));transition:width .5s var(--ease-orbit),background .3s}
+.forca i::after{content:"";position:absolute;right:-3px;top:-2px;width:6px;height:6px;border-radius:50%;background:inherit;box-shadow:0 0 8px var(--acc,var(--star))}
+.marcar{display:flex;gap:10px;align-items:flex-start;font-size:14px;color:var(--fg-2);margin:4px 0 22px;cursor:pointer}
+.marcar input{width:18px;height:18px;margin:2px 0 0;accent-color:var(--star);flex:none}
+.folha .btn{width:100%}
+.folha .nota{margin-top:16px;font-size:13px;color:var(--fg-3);text-align:center}
+.feito{display:grid;justify-items:center;text-align:center;gap:14px;padding:30px 0 10px}
+.feito h3{font:400 38px/1 var(--f-display)}
+.feito p{color:var(--fg-2);max-width:36ch}
+.vantagens{list-style:none;margin:36px 0 0;padding:0;display:grid}
+.vantagens li{display:grid;grid-template-columns:36px 1fr;gap:16px;padding:20px 0;border-top:1px solid var(--line-2)}
+.vantagens li svg{color:var(--star)}
+.vantagens b{display:block;font-weight:600;font-size:17px;margin-bottom:4px}
+.vantagens span{color:var(--fg-2);font-size:15px}
+.selo{display:inline-flex;align-items:center;gap:8px;font:500 10.5px/1 var(--f-mono);letter-spacing:.14em;text-transform:uppercase;color:var(--star);padding:7px 11px;border:1px solid rgb(237 213 163 / .35);border-radius:999px;width:max-content}
+
+/* ================= MELHORIAS ================= */
+.mural{display:grid;grid-template-columns:minmax(0,420px) minmax(0,1fr);gap:64px;align-items:start;margin-top:64px}
+@media (max-width:960px){.mural{grid-template-columns:1fr;gap:48px}}
+.tipos{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
+.filtro{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding-bottom:14px;border-bottom:1px solid var(--line-2)}
+.ideias{list-style:none;margin:0;padding:0;display:grid}
+.ideia{display:grid;grid-template-columns:64px minmax(0,1fr);gap:20px;padding:22px 0;border-bottom:1px solid var(--line-1)}
+.ideia.nova{animation:entra 1s var(--ease-orbit)}
+@keyframes entra{from{opacity:0;transform:translateY(-14px)}}
+.voto{display:grid;justify-items:center;align-content:start;gap:4px;height:max-content;padding:10px 0 8px;border:1px solid var(--line-2);border-radius:8px;background:none;cursor:pointer;transition:border-color .25s,background .25s}
+.voto svg{color:var(--fg-3);transition:color .25s,transform .35s var(--ease-orbit)}
+.voto b{font:400 26px/1 var(--f-display);font-variant-numeric:tabular-nums}
+.voto[aria-pressed="true"]{border-color:rgb(237 213 163 / .5);background:rgb(237 213 163 / .06)}
+.voto[aria-pressed="true"] svg{color:var(--star);transform:translateY(-2px)}
+.ideia h3{font:600 17px/1.35 var(--f-sans)}
+.ideia p{color:var(--fg-2);font-size:15px;margin-top:6px;line-height:1.55}
+.ideia .meta{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;margin-top:12px;font:500 10px/1 var(--f-mono);letter-spacing:.13em;color:var(--fg-3);text-transform:uppercase}
+.ideia .meta .m{display:inline-flex;align-items:center;gap:7px;color:var(--acc)}
+.ideia .meta .m .dot{width:5px;height:5px}
+.est{display:inline-flex;align-items:center;gap:6px;padding:5px 8px;border-radius:999px;border:1px solid currentColor}
+.est svg{flex:none}
+.est.recebida{color:var(--fg-2)}
+.est.analise{color:var(--info)}
+.est.plano{color:var(--star)}
+.est.feita{color:var(--ok)}
+.exemplo{color:var(--fg-3);border:1px dashed var(--line-3);padding:4px 7px;border-radius:4px}
+
+/* ================= RODAPÉ ================= */
+footer{border-top:1px solid var(--line-1);padding-block:56px max(40px,env(safe-area-inset-bottom,0px))}
+footer .wrap{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:40px}
+footer h4{font:500 10.5px/1 var(--f-mono);letter-spacing:.14em;color:var(--fg-3);text-transform:uppercase;margin-bottom:16px}
+footer ul{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+footer a{text-decoration:none;color:var(--fg-2);font-size:14px}
+footer a:hover{color:var(--fg)}
+footer .fim{grid-column:1/-1;display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;padding-top:28px;border-top:1px solid var(--line-1);font:400 10.5px/1.5 var(--f-mono);letter-spacing:.1em;color:var(--fg-3);text-transform:uppercase}
+@media (max-width:760px){footer .wrap{grid-template-columns:1fr 1fr}footer .wrap > div:first-child{grid-column:1/-1}}
+
+/* Ori (corpo de luz com anel) */
+.ori-face .nucleo{animation:respira 4.5s ease-in-out infinite;transform-origin:24px 24px;transform-box:view-box}
+.ori-face .olhos{animation:pisca 5.5s infinite;transform-origin:24px 25px;transform-box:view-box}
+@keyframes respira{50%{transform:scale(1.04)}}
+@keyframes pisca{0%,93%,100%{transform:scaleY(1)}95%{transform:scaleY(.1)}}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.001s!important;animation-iteration-count:1!important;transition-duration:.001s!important}
+}
+
+/* ================= v2: capítulos de casos de uso ================= */
+.grao{position:fixed;inset:-50%;width:200%;height:200%;z-index:56;pointer-events:none;opacity:.07;mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .9 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  animation:grao 1.2s steps(6) infinite}
+@keyframes grao{0%{transform:translate(0,0)}20%{transform:translate(-3%,2%)}40%{transform:translate(2%,-3%)}60%{transform:translate(-2%,-1%)}80%{transform:translate(3%,3%)}100%{transform:translate(0,0)}}
+.caps{position:absolute;inset:0;pointer-events:none}
+.cap{position:absolute;inset:0;display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);gap:4vw;align-items:center;padding:88px max(6vw,var(--gutter-r)) 40px max(6vw,var(--gutter-l));opacity:0;visibility:hidden;will-change:opacity}
+.cap-txt{display:grid;gap:22px;max-width:520px;will-change:transform}
+.cap-txt h2{font:400 clamp(46px,5.4vw,86px)/.95 var(--f-display);letter-spacing:-.02em}
+.cap-txt h2 em{color:var(--star)}
+.cap-txt p{color:var(--fg-2);font-size:clamp(16px,1.25vw,19px);line-height:1.6;max-width:44ch}
+.cap-txt .eyebrow{display:flex;align-items:center;gap:10px;color:var(--fg-2)}
+.cap-comp{position:relative;height:min(600px,74vh);min-width:0}
+.quadro{position:absolute;left:50%;top:50%;width:620px;height:580px;transform:translate(-50%,-50%) scale(var(--qs,1));transform-origin:50% 50%}
+[data-at]{opacity:0;transform:translateY(18px);transition:opacity .8s var(--ease-orbit),transform .9s var(--ease-orbit)}
+[data-at].on{opacity:1;transform:none}
+.vidro{position:absolute;border:1px solid rgb(var(--mist) / .16);border-radius:14px;background:linear-gradient(160deg,rgb(22 30 54 / .62),rgb(10 14 28 / .72));backdrop-filter:blur(22px) saturate(1.35);-webkit-backdrop-filter:blur(22px) saturate(1.35);box-shadow:inset 0 1px 0 rgb(255 255 255 / .07),0 0 0 1px rgb(0 0 0 / .35),0 50px 100px -30px rgb(0 0 0 / .85)}
+.vidro .eyebrow{font-size:10px}
+.vidro h3{font:400 46px/1 var(--f-display);margin-top:8px}
+/* resumo */
+.resumo{left:40px;right:40px;top:14px;padding:26px 28px 20px;display:grid;gap:18px}
+.resumo .topo{display:flex;justify-content:space-between;align-items:flex-start}
+.player{display:flex;align-items:center;gap:14px;padding:10px 14px 10px 10px;border:1px solid var(--line-2);border-radius:999px;background:rgb(7 10 19 / .4)}
+.ondas{flex:1;display:flex;align-items:center;gap:3px;height:26px}
+.ondas i{flex:1;border-radius:2px;background:linear-gradient(var(--star),rgb(237 213 163 / .35));height:calc(18% + var(--h,40%));animation:onda2 1.6s ease-in-out infinite}
+.ondas i:nth-child(3n){--h:60%;animation-delay:-.3s}.ondas i:nth-child(4n){--h:20%;animation-delay:-.7s}.ondas i:nth-child(5n){--h:75%;animation-delay:-1.1s}.ondas i:nth-child(7n){--h:10%;animation-delay:-.5s}
+@keyframes onda2{50%{transform:scaleY(.45)}}
+.itens{list-style:none;margin:0;padding:0;display:grid}
+.itens li{display:grid;grid-template-columns:78px 1fr;gap:14px;padding:12px 0;border-top:1px solid var(--line-1);position:relative}
+.itens li .q{font:500 10px/1.8 var(--f-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--acc)}
+.itens li b{display:block;font:600 15px/1.35 var(--f-sans)}
+.itens li div span{font-size:13px;color:var(--fg-3)}
+.itens li::before{content:"";position:absolute;left:-14px;top:19px;width:5px;height:5px;border-radius:50%;background:var(--acc);box-shadow:0 0 8px var(--acc)}
+.rodape{display:flex;justify-content:space-between;font:500 9.5px/1 var(--f-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--fg-3);padding-top:12px;border-top:1px solid var(--line-1)}
+/* foto */
+.nota{position:absolute;left:18px;top:30px;width:290px;transform:rotate(-5deg);transform-origin:50% 50%}
+.nota.on{transform:rotate(-5deg)}
+.nota:not(.on){transform:rotate(-9deg) translateY(30px)}
+.papel{position:relative;padding:26px 22px 30px;background:linear-gradient(180deg,#f6f1e6,#ebe3d2);color:#2a2620;font:500 11.5px/1.75 "Martian Mono",ui-monospace,monospace;letter-spacing:-.02em;display:grid;box-shadow:0 2px 0 #d9d0bd,0 40px 70px -20px rgb(0 0 0 / .9),0 0 0 1px rgb(0 0 0 / .2);
+  -webkit-mask:radial-gradient(circle at 6px 100%,transparent 5px,#000 5.5px) 0 0/12px 100% repeat-x;mask:linear-gradient(#000,#000) top/100% calc(100% - 6px) no-repeat,radial-gradient(circle at 6px 100%,transparent 5px,#000 5.5px) bottom/12px 7px repeat-x}
+.papel b{font-size:13px;letter-spacing:.02em;text-align:center}
+.papel > span:not(.l){text-align:center;color:#6e675b;font-size:10px}
+.papel hr{border:0;border-top:1px dashed #b5ab97;margin:10px 0;width:100%}
+.papel .l{display:flex;justify-content:space-between;gap:10px}
+.papel .l i{font-style:normal}
+.papel .tot{font-size:14px;font-weight:600}
+.papel .data{font-size:9.5px;color:#6e675b;margin-top:6px}
+.papel .cod{height:34px;margin-top:14px;background:repeating-linear-gradient(90deg,#2a2620 0 2px,transparent 2px 4px,#2a2620 4px 5px,transparent 5px 8px,#2a2620 8px 11px,transparent 11px 12px)}
+.nota .scan{position:absolute;left:-8px;right:-8px;height:2px;top:0;background:linear-gradient(90deg,transparent,#9cd2ff,transparent);box-shadow:0 0 18px 4px rgb(130 190 255 / .55);opacity:0}
+.cap.ativo .nota .scan{animation:scan 2.6s var(--ease-orbit) .4s infinite}
+@keyframes scan{0%{top:2%;opacity:0}10%{opacity:1}80%{opacity:1}100%{top:98%;opacity:0}}
+.nota .marca{position:absolute;border:1px solid #9cd2ff;border-radius:4px;background:rgb(156 210 255 / .12);box-shadow:0 0 12px rgb(130 190 255 / .4)}
+.nota .m1{left:12px;right:12px;top:16px;height:26px}
+.nota .m2{left:12px;right:12px;top:200px;height:28px}
+.nota .m3{left:12px;right:110px;top:250px;height:22px}
+.lanc{right:6px;top:150px;width:300px;padding:22px 22px 20px;display:grid;gap:12px}
+.lanc .valor,.resposta .valor{font:400 50px/1 var(--f-display);letter-spacing:-.01em}
+.resposta .valor small{font-size:.5em;color:var(--fg-2)}
+.lanc dl{margin:0;display:grid}
+.lanc dl div{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-top:1px solid var(--line-1);font-size:14px}
+.lanc dt{color:var(--fg-3)}
+.lanc dd{margin:0;display:flex;align-items:center;gap:8px}
+.botoes{display:flex;gap:8px;margin-top:4px}
+.botoes .b{font:600 13px/1 var(--f-sans);padding:10px 14px;border-radius:999px;border:1px solid var(--line-3)}
+.botoes .b.pri{background:var(--star);color:#1d1405;border-color:transparent}
+/* memória */
+.pergunta{position:absolute;right:30px;top:20px;max-width:400px;padding:14px 18px;border-radius:18px 18px 4px 18px;background:rgb(var(--mist) / .13);border:1px solid var(--line-2);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);font-size:17px;line-height:1.45}
+.pergunta span::after{content:"";display:inline-block;width:2px;height:1em;margin-left:3px;vertical-align:-2px;background:var(--star);animation:cursor 1s steps(2) infinite}
+@keyframes cursor{50%{opacity:0}}
+.resposta{left:20px;right:60px;top:126px;padding:24px 26px;display:grid;gap:16px}
+.barras{display:grid;gap:10px}
+.barras div{display:grid;grid-template-columns:96px 1fr 52px;gap:12px;align-items:center;font-size:13px;color:var(--fg-2)}
+.barras i{height:2px;background:var(--line-2);position:relative}
+.barras i::before{content:"";position:absolute;left:0;top:0;bottom:0;width:0;background:linear-gradient(90deg,rgb(128 226 185 / .4),#80e2b9);transition:width 1.4s var(--ease-orbit) .2s}
+.barras div.on i::before{width:var(--w)}
+.barras b{font:500 11px/1 var(--f-mono);text-align:right;color:var(--fg);font-variant-numeric:tabular-nums}
+.livro{display:grid;grid-template-columns:42px 1fr;gap:14px;align-items:center;padding-top:14px;border-top:1px solid var(--line-1)}
+.livro .capa{width:42px;height:60px;border-radius:2px;background:linear-gradient(160deg,#6b2b1d,#c2772e 60%,#e7b25a);box-shadow:0 10px 20px rgb(0 0 0 / .6),inset 3px 0 0 rgb(0 0 0 / .25)}
+.livro b{display:block;font:400 22px/1.15 var(--f-display);font-style:italic}
+.livro span{font-size:13px;color:var(--fg-3)}
+.fontes{display:flex;flex-wrap:wrap;gap:6px}
+.fontes span{font:500 9.5px/1 var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--fg-2);padding:7px 9px;border:1px solid var(--line-2);border-radius:999px}
+/* vigia */
+.regua{position:absolute;left:30px;right:30px;top:6px;display:grid;gap:10px}
+.linha-dia{position:relative;height:1px;background:linear-gradient(90deg,var(--line-1),var(--line-3),var(--line-1))}
+.linha-dia i{position:absolute;top:-3px;width:7px;height:7px;margin-left:-3.5px;border-radius:50%;background:var(--star);box-shadow:0 0 10px var(--star)}
+.linha-dia b{position:absolute;top:-14px;width:1px;height:29px;background:rgb(237 213 163 / .5)}
+.horas{display:flex;justify-content:space-between;font:500 9.5px/1 var(--f-mono);color:var(--fg-3);letter-spacing:.1em}
+.avisos{position:absolute;left:60px;right:20px;top:86px;display:grid;gap:12px}
+.aviso{display:grid;grid-template-columns:26px 1fr auto;gap:14px;align-items:start;padding:16px 18px;border-radius:12px;border:1px solid rgb(var(--mist) / .14);background:linear-gradient(160deg,rgb(24 32 58 / .7),rgb(12 16 30 / .78));backdrop-filter:blur(20px) saturate(1.3);-webkit-backdrop-filter:blur(20px) saturate(1.3);box-shadow:0 30px 60px -25px rgb(0 0 0 / .9)}
+.aviso:not(.on){transform:translateX(60px)}
+.aviso b{display:block;font:600 15px/1.3 var(--f-sans)}
+.aviso span{display:block;font-size:13.5px;color:var(--fg-2);margin-top:3px;line-height:1.45}
+.aviso time{font:500 10px/1.6 var(--f-mono);color:var(--fg-3);letter-spacing:.08em}
+.aviso.alerta{border-color:rgb(249 170 96 / .45);box-shadow:0 0 0 1px rgb(249 170 96 / .12),0 30px 60px -25px rgb(0 0 0 / .9)}
+.aviso .botoes{margin-top:12px}
+/* do seu jeito */
+.painel-hub{left:10px;right:10px;top:20px;padding:16px;display:grid;gap:14px}
+.abas-hub{display:flex;gap:6px;align-items:center}
+.abas-hub span{font:500 13px/1 var(--f-sans);padding:9px 13px;border-radius:999px;color:var(--fg-3);border:1px solid transparent;transition:all .5s var(--ease-orbit)}
+.abas-hub span.on{color:var(--fg);border-color:rgb(237 213 163 / .45);background:rgb(237 213 163 / .07)}
+.abas-hub .mais{margin-left:auto;width:32px;height:32px;padding:0;display:grid;place-items:center;border:1px dashed var(--line-3)}
+.bento{display:grid;grid-template-columns:repeat(3,1fr);grid-auto-rows:118px;gap:10px;position:relative}
+.bento .t{border:1px solid var(--line-2);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:6px;background:rgb(7 10 19 / .35);overflow:hidden;transition:opacity .6s var(--ease-orbit),transform .8s var(--ease-orbit)}
+.bento .t b{font:600 16px/1.2 var(--f-sans)}
+.bento .t b.num{font:400 40px/1 var(--f-display);font-variant-numeric:tabular-nums}
+.bento .t b small{font-size:.45em;color:var(--fg-2)}
+.bento .t > span:not(.eyebrow){font-size:12.5px;color:var(--fg-3)}
+.bento .t svg{margin-top:auto;width:100%;height:40px}
+.bento .pts{display:flex;gap:5px;margin-top:auto}
+.bento .pts i{flex:1;height:5px;border-radius:3px;background:#f4c677;box-shadow:0 0 6px rgb(244 198 119 / .5)}
+.bento .pts i.off{background:var(--line-2);box-shadow:none}
+.bento ul{list-style:none;margin:2px 0 0;padding:0;display:grid;gap:5px;font-size:12.5px;color:var(--fg-2)}
+.bento ul i{font:500 9.5px/1 var(--f-mono);color:var(--fg-3);margin-right:8px;font-style:normal}
+.bento .t-novo{border-style:dashed;border-color:rgb(237 213 163 / .5);background:rgb(237 213 163 / .04)}
+.bento.o0 .t-saldo{grid-area:1/1/2/3}.bento.o0 .t-seq{grid-area:1/3/2/4}.bento.o0 .t-agenda{grid-area:2/1/4/2}.bento.o0 .t-prova{grid-area:2/2/3/3}.bento.o0 .t-voo{grid-area:2/3/3/4}.bento.o0 .t-novo{grid-area:3/2/4/4}
+.bento.o1 .t-prova{grid-area:1/1/2/3}.bento.o1 .t-agenda{grid-area:1/3/3/4}.bento.o1 .t-seq{grid-area:2/1/3/2}.bento.o1 .t-saldo{grid-area:2/2/3/3}.bento.o1 .t-novo{grid-area:3/1/4/2}.bento.o1 .t-voo{grid-area:3/2/4/4;opacity:.25}
+.bento.o2 .t-voo{grid-area:1/1/2/3}.bento.o2 .t-saldo{grid-area:1/3/2/4}.bento.o2 .t-agenda{grid-area:2/1/4/2}.bento.o2 .t-seq{grid-area:2/2/3/3}.bento.o2 .t-prova{grid-area:2/3/3/4;opacity:.25}.bento.o2 .t-novo{grid-area:3/2/4/4}
+.bento:not(.novo) .t-novo{opacity:0;transform:scale(.92)}
+
+@media (max-width:860px){
+  .cap{grid-template-columns:1fr;grid-template-rows:auto 1fr;align-items:start;gap:10px;padding:84px var(--gutter-r) 24px var(--gutter-l)}
+  .cap-txt{gap:12px}
+  .cap-txt h2{font-size:clamp(34px,9vw,48px)}
+  .cap-txt p{font-size:15px}
+  .cap-comp{height:100%}
+  .veu{background:linear-gradient(180deg,rgb(7 10 19 / .85) 0%,rgb(7 10 19 / .4) 40%,transparent 70%)}
+}
+</style>
+
+
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <linearGradient id="g-area" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#80e2b9" stop-opacity=".25"/><stop offset="1" stop-color="#80e2b9" stop-opacity="0"/></linearGradient>
+    <radialGradient id="g-nucleo" cx="40%" cy="35%" r="65%"><stop offset="0" stop-color="#fff6dc"/><stop offset=".45" stop-color="#edd5a3"/><stop offset="1" stop-color="#7a5418"/></radialGradient>
+    <radialGradient id="g-halo" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#edd5a3" stop-opacity=".22"/><stop offset="1" stop-color="#edd5a3" stop-opacity="0"/></radialGradient>
+    <symbol id="ori-corpo" viewBox="0 0 48 48">
+      <circle cx="24" cy="24" r="22" fill="url(#g-halo)"/>
+      <g transform="rotate(-18 24 24)">
+        <ellipse cx="24" cy="24" rx="22" ry="8" fill="none" stroke="#edd5a3" stroke-opacity=".55" stroke-width="1"/>
+      </g>
+      <g class="nucleo"><circle cx="24" cy="24" r="12" fill="url(#g-nucleo)"/></g>
+      <g class="olhos"><path d="M19.5 23v2.5M28.5 23v2.5" stroke="#070a13" stroke-width="2" stroke-linecap="round"/></g>
+      <g transform="rotate(-18 24 24)"><circle r="2" fill="#fff3d0"><animateMotion dur="2.4s" repeatCount="indefinite" path="M2,24 a22,8 0 1,0 44,0 a22,8 0 1,0 -44,0"/></circle></g>
+    </symbol>
+    <symbol id="marca" viewBox="0 0 32 32">
+      <ellipse cx="16" cy="16" rx="14" ry="5.4" fill="none" stroke="currentColor" stroke-opacity=".6" stroke-width="1.2" transform="rotate(-22 16 16)"/>
+      <circle cx="16" cy="16" r="5" fill="#edd5a3"/>
+      <circle cx="28.6" cy="10.4" r="1.8" fill="#fff3d6"/>
+    </symbol>
+    <symbol id="g-windows" viewBox="0 0 24 24"><path d="M3 5.5 10.5 4.4v7.1H3zM11.8 4.2 21 3v8.5h-9.2zM3 12.6h7.5v7L3 18.5zM11.8 12.6H21V21l-9.2-1.3z" fill="currentColor"/></symbol>
+    <symbol id="g-seta" viewBox="0 0 24 24"><path d="M12 4v12m0 0-5-5m5 5 5-5M5 20h14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="g-memoria" viewBox="0 0 24 24"><path d="M20.5 12a8.5 8.5 0 1 1-3-6.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="19.3" cy="7.2" r="1.6" fill="currentColor"/></symbol>
+    <symbol id="g-voz" viewBox="0 0 24 24"><path d="M4 10v4M8 7v10M12 4v16M16 8v8M20 11v2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></symbol>
+    <symbol id="g-atalho" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M7 14h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="7.5" cy="10" r="1" fill="currentColor"/><circle cx="12" cy="10" r="1" fill="currentColor"/><circle cx="16.5" cy="10" r="1" fill="currentColor"/></symbol>
+    <symbol id="g-confirma" viewBox="0 0 24 24"><path d="M20.5 12a8.5 8.5 0 1 1-2.5-6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="m8 12 3 3 6-6.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="g-sol" viewBox="0 0 24 24"><path d="M3 17h18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M6.5 17a5.5 5.5 0 0 1 11 0" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="12" cy="6" r="1.5" fill="currentColor"/><circle cx="5" cy="9.5" r="1.2" fill="currentColor"/><circle cx="19" cy="9.5" r="1.2" fill="currentColor"/></symbol>
+    <symbol id="g-foto" viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3v11H4z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.5" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="17.5" cy="10.5" r="1" fill="currentColor"/></symbol>
+    <symbol id="g-orbitas" viewBox="0 0 24 24"><ellipse cx="12" cy="12" rx="10" ry="4" fill="none" stroke="currentColor" stroke-width="1.4" transform="rotate(-20 12 12)"/><ellipse cx="12" cy="12" rx="10" ry="4" fill="none" stroke="currentColor" stroke-width="1.4" stroke-opacity=".5" transform="rotate(40 12 12)"/><circle cx="12" cy="12" r="2.2" fill="currentColor"/></symbol>
+    <symbol id="g-casa" viewBox="0 0 24 24"><path d="M4 11 12 4l8 7v9H4z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><circle cx="12" cy="14.5" r="1.6" fill="currentColor"/></symbol>
+    <symbol id="g-sync" viewBox="0 0 24 24"><path d="M5 12a7 7 0 0 1 12-5m2 5a7 7 0 0 1-12 5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="17.5" cy="6.5" r="1.6" fill="currentColor"/><circle cx="6.5" cy="17.5" r="1.6" fill="currentColor"/></symbol>
+    <symbol id="g-voto" viewBox="0 0 24 24"><path d="M12 5v14M12 5l-5 5M12 5l5 5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="g-resp" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5" fill="url(#g-nucleo)"/><ellipse cx="12" cy="12" rx="10" ry="3.6" fill="none" stroke="#edd5a3" stroke-opacity=".6" stroke-width="1" transform="rotate(-18 12 12)"/></symbol>
+    <symbol id="e-recebida" viewBox="0 0 12 12"><circle cx="6" cy="6" r="4" fill="none" stroke="currentColor" stroke-width="1.3"/></symbol>
+    <symbol id="e-analise" viewBox="0 0 12 12"><circle cx="6" cy="6" r="4" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M6 2a4 4 0 0 1 0 8z" fill="currentColor"/></symbol>
+    <symbol id="e-plano" viewBox="0 0 12 12"><circle cx="6" cy="6" r="4" fill="none" stroke="currentColor" stroke-width="1.3"/><circle cx="6" cy="6" r="2" fill="currentColor"/></symbol>
+    <symbol id="e-feita" viewBox="0 0 12 12"><path d="m2.5 6.2 2.3 2.3L9.5 3.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  </defs>
+</svg>
+
+<canvas id="ceu" aria-hidden="true"></canvas>
+<div class="grao" aria-hidden="true"></div>
+<div class="fio" aria-hidden="true"><i id="fio"></i></div>
+
+<header class="nav" id="nav">
+  <div class="wrap">
+    <a class="marca" href="#topo" aria-label="Orbit, início"><svg width="30" height="30" style="color:var(--fg)"><use href="#marca"/></svg><b>Orbit</b></a>
+    <nav class="links" aria-label="Seções">
+      <a href="#capitulos">O que faz</a><a href="#ori">Ori</a><a href="#infinito">Possibilidades</a><a href="#melhorias">Melhorias</a>
+    </nav>
+    <span class="sp"></span>
+    <a class="entrar" href="#conta" data-aba="entrar">Entrar</a>
+    <a class="btn lin sm" href="#conta" data-aba="criar">Criar conta</a>
+    <a class="btn pri sm" href="#baixar">Baixar</a>
+  </div>
+</header>
+
+<main id="topo">
+
+<!-- ================= ÓRBITA ================= -->
+<section id="orbita" aria-label="O que o Orbit faz">
+  <div class="pin">
+    <canvas id="cosmos" aria-hidden="true"></canvas>
+    <div class="vinheta"></div><div class="veu"></div>
+
+    <div class="heroi" id="heroi">
+      <span class="eyebrow"><span class="dot" style="color:var(--star)"></span>App de desktop · Windows · com IA</span>
+      <h1>A sua vida inteira, <em>em órbita.</em></h1>
+      <p class="sub">Dinheiro, estudos, leitura, agenda e tudo o mais que você imaginar, num app só e do seu jeito. Com o Ori, uma IA que mora na tela, lembra de tudo e faz por você.</p>
+      <div class="acoes">
+        <a class="btn pri" href="#baixar"><svg width="18" height="18"><use href="#g-windows"/></svg>Baixar para Windows</a>
+        <a class="btn lin" href="#capitulos">Ver o que ele faz</a>
+      </div>
+    </div>
+    <div class="dica" id="dica">Role para entrar em órbita<i></i></div>
+
+    <div class="caps" id="caps">
+
+      <!-- 1 · manhã -->
+      <article class="cap" data-nome="Manhã">
+        <div class="cap-txt">
+          <span class="eyebrow"><span class="dot" style="color:var(--star)"></span>Todo dia às 7h</span>
+          <h2>Seu dia, resumido <em>antes do café.</em></h2>
+          <p>O Ori junta o que importa de todo o app: compromissos, contas que vencem, provas e e-mails que pedem resposta. Você lê em um minuto ou ouve enquanto se arruma.</p>
+        </div>
+        <div class="cap-comp"><div class="quadro">
+          <div class="vidro resumo" data-at=".02">
+            <div class="topo"><div><span class="eyebrow">Resumo da manhã</span><h3>Bom dia.</h3></div><span class="eyebrow" style="text-align:right">Qui · 23 out<br>07:00</span></div>
+            <div class="player" data-at=".1"><svg width="34" height="34" class="ori-face"><use href="#ori-corpo"/></svg><div class="ondas"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div><span class="eyebrow" style="color:var(--fg)">0:58</span></div>
+            <ul class="itens">
+              <li data-at=".18" style="--acc:#cbe36a"><span class="q">09:30</span><div><b>Reunião do estágio</b><span>Google Meet · sai às 09:20 para dar tempo</span></div></li>
+              <li data-at=".26" style="--acc:#80e2b9"><span class="q">Sexta</span><div><b>Fatura do cartão · R$ 1.284,90</b><span>Saldo cobre com folga de R$ 2.310</span></div></li>
+              <li data-at=".34" style="--acc:#f99c7c"><span class="q">Quinta</span><div><b>Prova de Cálculo II</b><span>Faltam 3 listas · reservei 2 h hoje à noite</span></div></li>
+              <li data-at=".42" style="--acc:#6fd3e6"><span class="q">2 de 14</span><div><b>E-mails pedem resposta</b><span>Do orientador e do banco</span></div></li>
+              <li data-at=".5" style="--acc:#f4c677"><span class="q">Hoje</span><div><b>11 páginas</b><span>Para manter a sequência de 8 dias</span></div></li>
+            </ul>
+            <div class="rodape" data-at=".56"><span>Feito no seu computador, com os seus dados</span><span>Ouvir · Ler depois</span></div>
+          </div>
+        </div></div>
+      </article>
+
+      <!-- 2 · foto -->
+      <article class="cap" data-nome="Foto">
+        <div class="cap-txt">
+          <span class="eyebrow"><span class="dot" style="color:var(--star)"></span>Câmera ou arquivo</span>
+          <h2>Uma foto <em>vira registro.</em></h2>
+          <p>Fotografe uma nota fiscal, um boleto ou um comprovante. O Ori lê, entende e prepara o lançamento certo, esperando só o seu Confirmar.</p>
+        </div>
+        <div class="cap-comp"><div class="quadro">
+          <div class="nota" data-at=".02">
+            <div class="papel">
+              <b>FARMÁCIA SÃO JOÃO</b>
+              <span>R. AUGUSTA, 1508 · SÃO PAULO</span>
+              <span>CNPJ 06.626.253/0412-37</span>
+              <hr>
+              <span class="l"><i>DIPIRONA 1G 10CP</i><i>12,90</i></span>
+              <span class="l"><i>PROTETOR FPS50 200ML</i><i>49,99</i></span>
+              <hr>
+              <span class="l tot" id="notaTot"><i>TOTAL R$</i><i>62,89</i></span>
+              <span class="l"><i>CRÉDITO · NUBANK ****4417</i><i></i></span>
+              <span class="l data"><i>23/10/2026 08:14:52</i><i>NFC-e 41.077</i></span>
+              <div class="cod"></div>
+            </div>
+            <i class="scan"></i>
+            <i class="marca m1" data-at=".22"></i><i class="marca m2" data-at=".3"></i><i class="marca m3" data-at=".38"></i>
+          </div>
+          <div class="vidro lanc" data-at=".44">
+            <span class="eyebrow" style="display:flex;align-items:center;gap:8px"><svg width="20" height="20" class="ori-face"><use href="#ori-corpo"/></svg>Lançamento pronto</span>
+            <div class="valor">R$ 62,89</div>
+            <dl>
+              <div data-at=".5"><dt>Onde</dt><dd>Farmácia São João</dd></div>
+              <div data-at=".54"><dt>Categoria</dt><dd><span class="dot" style="color:#f59aa0;width:6px;height:6px"></span> Saúde</dd></div>
+              <div data-at=".58"><dt>Conta</dt><dd>Nubank · crédito</dd></div>
+              <div data-at=".62"><dt>Quando</dt><dd>23 out, 08:14</dd></div>
+            </dl>
+            <div class="botoes" data-at=".66"><span class="b pri">Confirmar</span><span class="b">Editar</span></div>
+          </div>
+        </div></div>
+      </article>
+
+      <!-- 3 · memória -->
+      <article class="cap" data-nome="Memória">
+        <div class="cap-txt">
+          <span class="eyebrow"><span class="dot" style="color:var(--star)"></span>Busca em tudo</span>
+          <h2>Pergunte qualquer coisa <em>sobre a sua vida.</em></h2>
+          <p>O Ori lembra de tudo o que passa pelo Orbit. Pergunte do seu jeito e ele cruza gastos, leituras, estudos e agenda para responder.</p>
+        </div>
+        <div class="cap-comp"><div class="quadro">
+          <div class="pergunta" data-at=".04"><span id="perguntaTxt">quanto gastei na viagem a Lisboa? e qual livro eu estava lendo?</span></div>
+          <div class="vidro resposta" data-at=".2">
+            <span class="eyebrow" style="display:flex;align-items:center;gap:8px"><svg width="20" height="20" class="ori-face"><use href="#ori-corpo"/></svg>Lisboa · 3 a 12 de julho</span>
+            <div class="valor">R$ 6.842<small>,30</small></div>
+            <div class="barras">
+              <div data-at=".3"><span>Hospedagem</span><i style="--w:100%"></i><b>2.910</b></div>
+              <div data-at=".35"><span>Comida</span><i style="--w:56%"></i><b>1.640</b></div>
+              <div data-at=".4"><span>Passeios</span><i style="--w:40%"></i><b>1.172</b></div>
+              <div data-at=".45"><span>Transporte</span><i style="--w:38%"></i><b>1.120</b></div>
+            </div>
+            <div class="livro" data-at=".52"><div class="capa"></div><div><b>A Cidade e as Serras</b><span>212 páginas durante a viagem · terminou no voo de volta</span></div></div>
+            <div class="fontes" data-at=".6"><span>47 lançamentos</span><span>9 sessões de leitura</span><span>1 viagem na agenda</span></div>
+          </div>
+        </div></div>
+      </article>
+
+      <!-- 4 · vigia -->
+      <article class="cap" data-nome="Vigia">
+        <div class="cap-txt">
+          <span class="eyebrow"><span class="dot" style="color:var(--star)"></span>Em segundo plano</span>
+          <h2>Ele cuida <em>enquanto você vive.</em></h2>
+          <p>O Orbit fica de olho por você: lê o boleto que chegou no e-mail, faz a cópia de segurança de madrugada, avisa do prazo e percebe quando o computador não vai bem.</p>
+        </div>
+        <div class="cap-comp"><div class="quadro">
+          <div class="regua" data-at=".02"><span class="eyebrow">Hoje</span><div class="linha-dia"><i style="left:12.5%" data-at=".2"></i><i style="left:37%" data-at=".3"></i><i style="left:58%" data-at=".4"></i><i style="left:79%" data-at=".5"></i><b style="left:79%"></b></div><div class="horas"><span>00h</span><span>06h</span><span>12h</span><span>18h</span><span>24h</span></div></div>
+          <div class="avisos">
+            <div class="aviso" data-at=".2"><svg width="26" height="26" class="ori-face"><use href="#ori-corpo"/></svg><div><b>Cópia de segurança feita</b><span>1,2 GB conferidos e guardados.</span></div><time>03:00</time></div>
+            <div class="aviso" data-at=".3"><svg width="26" height="26" class="ori-face"><use href="#ori-corpo"/></svg><div><b>Boleto encontrado no e-mail</b><span>Condomínio de novembro, R$ 780,00, vence dia 10. Criei um lembrete.</span></div><time>08:52</time></div>
+            <div class="aviso" data-at=".4"><svg width="26" height="26" class="ori-face"><use href="#ori-corpo"/></svg><div><b>Trabalho de Física em 2 dias</b><span>Faltam o relatório e os gráficos.</span></div><time>14:00</time></div>
+            <div class="aviso alerta" data-at=".5"><svg width="26" height="26" class="ori-face"><use href="#ori-corpo"/></svg><div><b>Disco C: quase cheio</b><span>92% usado. Posso limpar 6,4 GB de arquivos temporários?</span><div class="botoes"><span class="b pri">Limpar</span><span class="b">Depois</span></div></div><time>19:10</time></div>
+          </div>
+        </div></div>
+      </article>
+
+      <!-- 5 · do seu jeito -->
+      <article class="cap" data-nome="Do seu jeito">
+        <div class="cap-txt">
+          <span class="eyebrow"><span class="dot" style="color:var(--star)"></span>Totalmente customizável</span>
+          <h2>Monte o app <em>que é só seu.</em></h2>
+          <p>Escolha o que entra, crie uma órbita para cada fase da vida e deixe de fora o que não usa. Novos módulos chegam pela Estação, sem reinstalar nada.</p>
+        </div>
+        <div class="cap-comp"><div class="quadro">
+          <div class="vidro painel-hub" id="painelHub" data-at=".02">
+            <div class="abas-hub"><span class="on" data-orb="0">Meu céu</span><span data-orb="1">Faculdade</span><span data-orb="2">Viagem a Lisboa</span><span class="mais">+</span></div>
+            <div class="bento" id="bento">
+              <div class="t t-saldo"><span class="eyebrow">Saldo do mês</span><b class="num">R$ 2.310</b><svg viewBox="0 0 200 48" preserveAspectRatio="none"><path d="M0 40 C30 36 40 22 70 26 S120 12 150 16 S185 6 200 8" fill="none" stroke="#80e2b9" stroke-width="1.5"/><path d="M0 40 C30 36 40 22 70 26 S120 12 150 16 S185 6 200 8 V48 H0Z" fill="url(#g-area)"/></svg></div>
+              <div class="t t-seq"><span class="eyebrow">Leitura</span><b class="num">8 <small>dias</small></b><div class="pts"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i class="off"></i></div></div>
+              <div class="t t-prova"><span class="eyebrow">Próxima prova</span><b>Cálculo II</b><span>Qui, 30 out · 19h10</span></div>
+              <div class="t t-agenda"><span class="eyebrow">Hoje</span><ul><li><i>09:30</i>Reunião do estágio</li><li><i>14:00</i>Biblioteca</li><li><i>19:00</i>Revisar listas</li></ul></div>
+              <div class="t t-voo"><span class="eyebrow">Voo para Lisboa</span><b class="num">43 <small>dias</small></b><span>GRU → LIS · 5 dez</span></div>
+              <div class="t t-novo"><span class="eyebrow" style="color:var(--star)">Novo · da Estação</span><b>Treino</b><span>3 vezes por semana</span></div>
+            </div>
+          </div>
+        </div></div>
+      </article>
+
+    </div>
+    <nav class="trilho" id="trilho" aria-label="Capítulos"></nav>
+
+    <div class="final" id="final">
+      <span class="eyebrow" style="margin-bottom:22px">E isso é só o começo</span>
+      <h2>Se cabe na sua vida, <em>cabe no Orbit.</em></h2>
+      <p>Uma órbita para a faculdade, outra para a viagem, outra para a casa. O espaço cresce com você, e o Ori aprende cada uma delas.</p>
+    </div>
+  </div>
+</section>
+<span id="capitulos" style="position:absolute;top:100vh" aria-hidden="true"></span>
+
+<!-- ================= INFINITO ================= -->
+<section id="infinito" aria-label="Um app para tudo">
+  <div class="pin">
+    <div class="titulo">
+      <span class="eyebrow">Uma infinidade de aplicações</span>
+      <h2>Um app para <em>tudo.</em></h2>
+      <p>Se cabe na sua vida, cabe no Orbit. Você pede com as suas palavras e o Ori resolve no módulo certo.</p>
+    </div>
+    <div style="display:grid;align-content:center;gap:5vh;min-height:0">
+      <div class="pista" id="pista"></div>
+      <div class="palavras" id="palavras" aria-hidden="true"></div>
+    </div>
+    <div></div>
+  </div>
+</section>
+
+<!-- ================= ORI ================= -->
+<section id="ori" aria-label="O Ori">
+  <div class="pin">
+    <div class="ori-fundo" id="oriFundo" aria-hidden="true">Ori</div>
+    <div class="ori-cab" id="oriCab">
+      <svg width="64" height="64" class="ori-face" aria-hidden="true"><use href="#ori-corpo"/></svg>
+      <span class="eyebrow">Conheça o Ori</span>
+      <h2>Uma frase. <em>Vários lugares.</em></h2>
+    </div>
+    <div class="janela" id="janela" role="img" aria-label="O Orbit aberto, com o Ori marcando na agenda, no orçamento e nos lembretes a revisão do carro a partir de uma única frase.">
+      <div class="palco" id="palco">
+        <div class="app" id="app">
+          <div class="barra"><b>ORBIT</b> / FINANCE / LANÇAMENTOS <span class="sp"></span> QUA 22 OUT · 18:42 <span class="ctl"><i></i><i></i><i></i></span></div>
+          <nav class="lado" aria-hidden="true">
+            <span><svg width="22" height="22"><use href="#g-orbitas"/></svg></span>
+            <span class="on"><svg width="22" height="22" viewBox="0 0 24 24"><path d="M4 16l5-5 4 3 7-7" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="20" cy="7" r="1.6" fill="currentColor"/></svg></span>
+            <span><svg width="22" height="22" viewBox="0 0 24 24"><path d="M5 4v16M9 4v16M13 5l4 15" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span>
+            <span><svg width="22" height="22"><use href="#g-memoria"/></svg></span>
+            <span><svg width="22" height="22"><use href="#g-casa"/></svg></span>
+          </nav>
+          <div class="conteudo">
+            <div>
+              <span class="eyebrow">Outubro de 2026</span>
+              <h3 style="margin-top:10px">R$ <span id="appTotal">4.120</span><em>,00</em></h3>
+              <p class="sub">gastos do mês, <span id="appPct">69</span>% do orçamento de R$ 6.000</p>
+            </div>
+            <div class="bloco">
+              <div class="lab"><span>Hoje</span><span id="appQtd">2 lançamentos</span></div>
+              <div class="linha nova"><div><div class="t">Revisão do carro</div><div class="m">RESERVADO · CARRO · SÁB 25, PELO ORI</div></div><div class="n">−450</div></div>
+              <div class="linha"><div><div class="t">Uber</div><div class="m">NUBANK · TRANSPORTE · 08:41</div></div><div class="n">−23</div></div>
+              <div class="linha" style="border:0"><div><div class="t">Padaria</div><div class="m">DÉBITO · ALIMENTAÇÃO · 07:55</div></div><div class="n">−18</div></div>
+            </div>
+            <div class="bloco orc">
+              <div class="lab"><span>Orçamento</span><span>faltam 9 dias</span></div>
+              <div class="r"><span>Carro</span><div class="trilha"><i id="appAli" style="width:18%"></i></div><b id="appAliPct">18%</b></div>
+              <div class="r"><span>Transporte</span><div class="trilha"><i style="width:54%"></i></div><b>54%</b></div>
+              <div class="r"><span>Casa</span><div class="trilha"><i style="width:91%"></i></div><b>91%</b></div>
+            </div>
+          </div>
+          <aside class="doca">
+            <div class="dh"><svg width="44" height="44" class="ori-face"><use href="#ori-corpo"/></svg><div><div class="nome">Ori</div><div class="st" id="appSt">● OUVINDO</div></div></div>
+            <div class="log">
+              <div class="voce a1">marca a revisão do carro sábado às 10, separa 450 no orçamento e me lembra na sexta</div>
+              <div class="passos a2"><span>✓ agenda: sábado 25, 10h · revisão do carro</span><span>✓ orçamento: R$ 450 em Carro, outubro</span><span>✓ lembrete: sexta 24, 18h, no Windows</span></div>
+              <div class="recibo a3"><span class="eyebrow">Confirmar 3 mudanças</span><span class="v">3 lugares, 1 frase</span><span class="d">Agenda · Orçamento · Lembretes</span></div>
+              <div class="txt a5">Feito. Com a revisão reservada, sobram R$ 1.430 livres em outubro.</div>
+              <div class="chips a6"><span class="chip pri">Desfazer tudo</span><span class="chip">Ver agenda</span><span class="chip">Mudar o horário</span></div>
+            </div>
+            <div class="compor"><span>Fale ou escreva para o Ori…</span><span class="onda" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span></div>
+          </aside>
+        </div>
+      </div>
+    </div>
+    <div class="tecla-flut" id="teclaFlut"><kbd>Ctrl</kbd><kbd>Alt</kbd><kbd>Espaço</kbd><span style="margin-left:6px">chama o Ori de qualquer lugar</span></div>
+  </div>
+</section>
+
+<section class="secao" style="padding-top:clamp(40px,6vw,80px)" aria-labelledby="h-recursos">
+  <div class="wrap">
+    <div class="titulo surge">
+      <span class="eyebrow">O que o Ori faz</span>
+      <h2 id="h-recursos">Ele lembra, <em>você vive.</em></h2>
+      <p>O Ori roda no seu computador, conhece todos os módulos e age na tela enquanto você assiste. Antes de mudar qualquer coisa, ele pede a sua confirmação.</p>
+    </div>
+    <div class="recursos">
+      <div class="recurso surge"><svg width="34" height="34"><use href="#g-memoria"/></svg><h3>Lembra de tudo</h3><p>Pergunte sobre um gasto de março, um livro do ano passado ou a nota daquela prova. Ele busca em todos os módulos.</p></div>
+      <div class="recurso surge"><svg width="34" height="34"><use href="#g-voz"/></svg><h3>Fala e escuta</h3><p>Converse por voz. O reconhecimento e a voz rodam no seu computador, sem mandar o áudio para lugar nenhum.</p></div>
+      <div class="recurso surge"><svg width="34" height="34"><use href="#g-atalho"/></svg><h3>De qualquer lugar do Windows</h3><p>Ctrl + Alt + Espaço chama o Ori por cima de qualquer janela, com texto, foto, arquivo ou voz.</p></div>
+      <div class="recurso surge"><svg width="34" height="34"><use href="#g-confirma"/></svg><h3>Pede antes de mexer</h3><p>Toda escrita passa por um Confirmar, mostra os passos que deu e pode ser desfeita com um clique.</p></div>
+      <div class="recurso surge"><svg width="34" height="34"><use href="#g-sol"/></svg><h3>Resumo da manhã e da noite</h3><p>O que vence hoje, quanto você gastou, as aulas do dia e o que ficou para amanhã, numa leitura de um minuto.</p></div>
+      <div class="recurso surge"><svg width="34" height="34"><use href="#g-foto"/></svg><h3>Lê fotos</h3><p>Fotografe uma nota fiscal ou um comprovante e o lançamento aparece pronto para você aprovar.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= NÚMEROS ================= -->
+<section class="secao" id="local" style="padding-top:0" aria-labelledby="h-local">
+  <div class="wrap">
+    <div class="titulo surge">
+      <span class="eyebrow">Local e seu</span>
+      <h2 id="h-local">Seu computador <em>é a nave.</em></h2>
+      <p>O Orbit roda no seu Windows. Seus dados ficam no seu disco, com cópias de segurança conferidas, e as senhas dos serviços ficam guardadas no cofre do app.</p>
+    </div>
+    <div class="numeros">
+      <div class="numero surge"><b data-conta="98">98</b><span>coisas que o Ori já sabe fazer pelos módulos</span></div>
+      <div class="numero surge"><b>∞</b><span>módulos possíveis: novos chegam pela Estação, sem reinstalar</span></div>
+      <div class="numero surge"><b data-conta="100" data-suf="%">100<small>%</small></b><span>dos seus dados no seu computador</span></div>
+      <div class="numero surge"><b>1</b><span>atalho para chamar o Ori: Ctrl + Alt + Espaço</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= DOWNLOAD ================= -->
+<section id="baixar" aria-labelledby="h-baixar">
+  <div class="wrap baixar">
+    <svg class="anel" id="anelBaixar" viewBox="0 0 1000 1000" aria-hidden="true">
+      <g fill="none" stroke="rgb(168 186 255)">
+        <ellipse cx="500" cy="500" rx="480" ry="170" stroke-opacity=".10"/>
+        <ellipse cx="500" cy="500" rx="360" ry="128" stroke-opacity=".14"/>
+        <ellipse cx="500" cy="500" rx="240" ry="86" stroke-opacity=".08" stroke-dasharray="2 7"/>
+      </g>
+      <circle r="4" fill="#80e2b9"><animateMotion dur="38s" repeatCount="indefinite" path="M20,500 a480,170 0 1,0 960,0 a480,170 0 1,0 -960,0"/></circle>
+      <circle r="5" fill="#f4c677"><animateMotion dur="26s" repeatCount="indefinite" path="M140,500 a360,128 0 1,1 720,0 a360,128 0 1,1 -720,0"/></circle>
+      <circle r="3.5" fill="#b7a0fb"><animateMotion dur="52s" repeatCount="indefinite" begin="-20s" path="M20,500 a480,170 0 1,0 960,0 a480,170 0 1,0 -960,0"/></circle>
+      <circle r="3" fill="#f8a7d4"><animateMotion dur="18s" repeatCount="indefinite" begin="-6s" path="M260,500 a240,86 0 1,0 480,0 a240,86 0 1,0 -480,0"/></circle>
+    </svg>
+    <span class="eyebrow" style="position:relative">Pronto para decolar</span>
+    <h2 id="h-baixar">Baixe o <em>Orbit.</em></h2>
+    <p>Grátis. Instale em um minuto, escolha seus módulos e converse com o Ori. Ele se atualiza sozinho quando sai versão nova.</p>
+    <div class="acoes">
+      <a class="btn pri" href="https://github.com/fnavai/orbit-versoes/releases/latest" target="_blank" rel="noopener"><svg width="20" height="20"><use href="#g-windows"/></svg>Baixar para Windows</a>
+      <a class="btn lin" href="https://github.com/fnavai/orbit-versoes/releases" target="_blank" rel="noopener">Todas as versões</a>
+    </div>
+    <div class="meta">
+      <span><span class="dot"></span>Versão mais recente</span>
+      <span>Windows 10 e 11 · 64 bits</span>
+      <span>Atualização automática</span>
+    </div>
+  </div>
+</section>
+
+<!-- ================= CONTA ================= -->
+<section class="secao" id="conta" aria-labelledby="h-conta">
+  <div class="wrap conta">
+    <div class="surge">
+      <div class="titulo">
+        <span class="selo"><span class="dot"></span>Em breve</span>
+        <h2 id="h-conta">Sua conta, <em>seu céu em qualquer lugar.</em></h2>
+        <p>Com a conta, suas órbitas, módulos e customizações vão com você para qualquer computador. Cadastre-se agora e avisamos quando abrir.</p>
+      </div>
+      <ul class="vantagens">
+        <li><svg width="30" height="30"><use href="#g-sync"/></svg><div><b>Tudo sincronizado</b><span>Cada customização salva no seu Acervo e na sua conta.</span></div></li>
+        <li><svg width="30" height="30"><use href="#g-orbitas"/></svg><div><b>Módulos novos pelo app</b><span>Baixe módulos direto da Estação, sem reinstalar nada.</span></div></li>
+        <li><svg width="30" height="30"><use href="#g-confirma"/></svg><div><b>Você decide o que sobe</b><span>O app continua funcionando sem internet. A nuvem é opcional.</span></div></li>
+      </ul>
+    </div>
+    <div class="folha surge" id="folhaConta">
+      <div class="abas" role="tablist" aria-label="Conta">
+        <button type="button" role="tab" id="aba-criar" aria-selected="true" aria-controls="form-conta">Criar conta</button>
+        <button type="button" role="tab" id="aba-entrar" aria-selected="false" aria-controls="form-conta">Entrar</button>
+      </div>
+      <form id="form-conta" role="tabpanel" novalidate>
+        <div class="campo" id="campoNome"><label for="c-nome">Nome</label><input id="c-nome" name="nome" autocomplete="name" placeholder="Como o Ori vai te chamar"></div>
+        <div class="campo"><label for="c-email">E-mail</label><input id="c-email" name="email" type="email" autocomplete="email" placeholder="voce@exemplo.com"><span class="erro" id="erroEmail" hidden>Confira o e-mail: falta o @ ou o domínio.</span></div>
+        <div class="campo"><label for="c-senha">Senha</label><input id="c-senha" name="senha" type="password" autocomplete="new-password" placeholder="Pelo menos 8 caracteres"><div class="forca" aria-hidden="true"><i id="forca"></i></div><span class="ajuda" id="forcaTxt">Use letras, números e um símbolo.</span></div>
+        <label class="marcar" id="campoNovidades"><input type="checkbox" id="c-novidades" checked> Quero receber novidades do Orbit e saber quando as contas abrirem.</label>
+        <button class="btn pri" type="submit" id="btnConta">Criar minha conta</button>
+        <p class="nota" id="notaConta">Prévia: este formulário ainda não envia nada.</p>
+      </form>
+      <div class="feito" id="contaFeita" hidden>
+        <svg width="72" height="72" class="ori-face" aria-hidden="true"><use href="#ori-corpo"/></svg>
+        <h3>Lugar reservado.</h3>
+        <p id="contaFeitaTxt">Assim que as contas abrirem, o Ori te avisa por e-mail.</p>
+        <button class="btn lin sm" type="button" id="contaVoltar">Voltar</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= MELHORIAS ================= -->
+<section class="secao" id="melhorias" aria-labelledby="h-melhorias" style="padding-top:0">
+  <div class="wrap">
+    <div class="titulo surge">
+      <span class="eyebrow">Mural de melhorias</span>
+      <h2 id="h-melhorias">O Orbit cresce <em>com você.</em></h2>
+      <p>Conte o que falta, o que pode ficar melhor ou um módulo que você queria ter. Cada ideia chega direto para quem faz o Orbit, e você acompanha o andamento aqui.</p>
+    </div>
+    <div class="mural">
+      <form class="folha surge" id="form-ideia" novalidate style="padding-top:24px">
+        <div class="tipos" role="radiogroup" aria-label="Tipo" id="tipos">
+          <button type="button" class="chipm" style="--acc:var(--star)" aria-pressed="true" data-tipo="Ideia nova"><span class="dot"></span>Ideia nova</button>
+          <button type="button" class="chipm" style="--acc:var(--info)" aria-pressed="false" data-tipo="Melhoria"><span class="dot"></span>Melhoria</button>
+          <button type="button" class="chipm" style="--acc:#f17070" aria-pressed="false" data-tipo="Problema"><span class="dot"></span>Problema</button>
+        </div>
+        <div class="campo"><label for="i-mod">Onde</label>
+          <select id="i-mod"><option>Geral</option><option>Ori</option><option>Hub</option><option>Finance</option><option>Livros</option><option>Estudos</option><option>Agenda</option><option>E-mail</option><option>Acervo</option><option>Status</option><option>Um módulo novo</option></select></div>
+        <div class="campo"><label for="i-titulo">Título</label><input id="i-titulo" maxlength="90" placeholder="Ex.: importar extrato do banco"><span class="erro" id="erroTitulo" hidden>Escreva um título com pelo menos 6 letras.</span></div>
+        <div class="campo"><label for="i-texto">Conte mais</label><textarea id="i-texto" maxlength="800" placeholder="O que você queria que acontecesse? Em que momento isso ajudaria?"></textarea></div>
+        <div class="campo"><label for="i-email">E-mail para resposta <span style="color:var(--fg-3)">(opcional)</span></label><input id="i-email" type="email" placeholder="voce@exemplo.com"></div>
+        <button class="btn pri" type="submit">Enviar melhoria</button>
+        <p class="nota">Prévia: a ideia aparece no mural só neste navegador.</p>
+      </form>
+      <div style="min-width:0">
+        <div class="filtro">
+          <div class="seg" id="ordem"><button type="button" aria-pressed="true" data-ordem="votos">Mais votadas</button><button type="button" aria-pressed="false" data-ordem="novas">Recentes</button></div>
+          <span class="eyebrow" id="contaIdeias"></span>
+        </div>
+        <ul class="ideias" id="ideias"></ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <div style="display:grid;gap:14px;align-content:start">
+      <a class="marca" href="#topo"><svg width="30" height="30" style="color:var(--fg)"><use href="#marca"/></svg><b>Orbit</b></a>
+      <p style="color:var(--fg-2);font-size:14px;max-width:34ch">Um app para observar e organizar a própria vida, com uma IA que mora na tela.</p>
+    </div>
+    <div><h4>Produto</h4><ul><li><a href="#capitulos">O que faz</a></li><li><a href="#ori">Ori</a></li><li><a href="#infinito">Possibilidades</a></li><li><a href="#baixar">Baixar</a></li></ul></div>
+    <div><h4>Comunidade</h4><ul><li><a href="#melhorias">Mural de melhorias</a></li><li><a href="#conta" data-aba="criar">Criar conta</a></li><li><a href="https://github.com/fnavai/orbit-versoes/releases" target="_blank" rel="noopener">Notas de versão</a></li></ul></div>
+    <div><h4>Orbit</h4><ul><li><a href="#baixar">Requisitos</a></li><li><a href="#local">Privacidade</a></li></ul></div>
+    <div class="fim"><span>© 2026 Orbit</span><span>Feito no Brasil · 23°33′S 46°38′O</span></div>
+  </div>
+</footer>
+
+<script>
+(function(){
+"use strict";
+document.documentElement.classList.add("js");
+const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
+const clamp=(x,a,b)=>Math.min(b,Math.max(a,x));
+const lerp=(a,b,t)=>a+(b-a)*t;
+const smooth=(a,b,x)=>{x=clamp((x-a)/(b-a),0,1);return x*x*(3-2*x)};
+const $=s=>document.querySelector(s);
+const store={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+
+/* ---------- dados ---------- */
+const MODS=[
+  {id:"finance",nome:"Finance",cor:"#80e2b9",estado:"Disponível",frase:"Seu dinheiro inteiro, numa tela só.",itens:["Painel, extrato, orçamento, contas e cartões.","Cotações do Mercado ao vivo, com a licença de dados que você escolher.","Diga “gastei 300 no mercado” e o Ori lança para você."]},
+  {id:"books",nome:"Livros",cor:"#f4c677",estado:"Disponível",frase:"Ler vira um hábito que você enxerga.",itens:["Cota de páginas do dia e sequência de dias lidos.","Metas por livro com a data em que você termina no seu ritmo.","O Ori percebe seus padrões, como o dia em que você mais lê."]},
+  {id:"estudos",nome:"Estudos",cor:"#f99c7c",estado:"Chega na 2.0",frase:"A faculdade inteira num lugar só.",itens:["Aulas, provas e notas puxadas do portal da faculdade e do Moodle.","Trabalhos com prazo e o Ori avisando antes.","Tempo de estudo e modo foco para as semanas de prova."]},
+  {id:"agenda",nome:"Agenda",cor:"#cbe36a",estado:"Chega na 2.0",frase:"Seu tempo, sem atrito.",itens:["Tarefas, datas e compromissos numa linha do tempo.","Google e Outlook juntos, lado a lado.","Lembretes inteligentes no app ou no Windows, como você preferir."]},
+  {id:"email",nome:"E-mail",cor:"#6fd3e6",estado:"Chega na 2.0",frase:"A caixa de entrada que se resume sozinha.",itens:["Gmail e Outlook com as mesmas contas da Agenda.","O Ori lê, separa o que pede resposta e resume o dia.","Boletos e faturas viram lembretes e lançamentos."]},
+  {id:"acervo",nome:"Acervo",cor:"#f8a7d4",estado:"Disponível",frase:"Tudo o que é seu, guardado e protegido.",itens:["Cada dado do Orbit organizado em gavetas, num lugar só.","Cópias de segurança automáticas e conferidas.","Lixeira e restauração com um clique."]},
+  {id:"status",nome:"Status",cor:"#9dc9f7",estado:"Disponível",frase:"O seu computador em boas mãos.",itens:["Vigia em segundo plano: rede, disco, memória e segurança.","Avisa quando algo sai do normal, antes de virar problema.","Confere cada atualização do Orbit antes de instalar."]},
+  {id:"stock",nome:"StockGenie",cor:"#b7a0fb",estado:"Em estudo",frase:"Ações, com o futuro em leque.",itens:["A trajetória de cada papel e os cenários possíveis.","Carteira, proventos e alertas de preço.","Conversa com o Finance para ver o patrimônio inteiro."]},
+];
+window.ORBIT={MODS,cosmos:null};
+
+/* ---------- capítulos ---------- */
+const capEls=[...document.querySelectorAll(".cap")],trilho=$("#trilho");
+const NC=capEls.length;
+const capItens=capEls.map(c=>[...c.querySelectorAll("[data-at]")].map(el=>({el,at:+el.dataset.at})));
+capEls.forEach((c,i)=>{const b=document.createElement("button");b.type="button";b.style.setProperty("--acc","var(--star)");b.innerHTML=`${c.dataset.nome}<i></i>`;b.addEventListener("click",()=>irPara(i));trilho.appendChild(b)});
+const trilhoEls=[...trilho.children];
+function escalaQuadros(){capEls.forEach(c=>{const box=c.querySelector(".cap-comp");const q=c.querySelector(".quadro");const s=Math.min(1.12,box.clientWidth/620,box.clientHeight/580);q.style.setProperty("--qs",Math.max(.4,s).toFixed(3))})}
+addEventListener("resize",escalaQuadros);addEventListener("load",escalaQuadros);escalaQuadros();
+const pergunta=$("#perguntaTxt"),PERG=pergunta.textContent;
+const bento=$("#bento"),abasHub=[...document.querySelectorAll(".abas-hub span[data-orb]")];
+
+/* ---------- faixa lateral ---------- */
+const PEDIDOS=[
+  ["finance","Quanto gastei com Uber em outubro?","R$ 184,30 em 9 corridas, 12% a menos que em setembro."],
+  ["agenda","Me lembra de pagar a fatura no dia 10.","Lembrete criado para 10 de novembro às 9h, no Windows."],
+  ["finance","Lê esse comprovante.","Farmácia, R$ 62,90. Lançado em Saúde, esperando seu Confirmar."],
+  ["estudos","Quando é a prova de Cálculo II?","Quinta, 6 de novembro, às 19h10. Faltam 3 listas."],
+  ["email","Resume meus e-mails de hoje.","14 novos. Dois pedem resposta e chegou um boleto."],
+  ["books","Quantas páginas faltam para terminar?","191 páginas. No seu ritmo, você termina em 10 de novembro."],
+  ["acervo","Faz uma cópia de tudo agora.","Cópia feita e conferida: 1,2 GB guardados."],
+  ["status","Por que a internet está lenta?","Uma atualização do Windows está usando 82% da banda."],
+  ["star","Cria uma órbita para a viagem a Lisboa.","Nova órbita com Viagens, Finance e Agenda."],
+  ["star","Modo foco por 50 minutos.","Notificações pausadas até as 19h40."],
+];
+const corDe=id=>id==="star"?"#edd5a3":MODS.find(m=>m.id===id).cor;
+const nomeDe=id=>id==="star"?"Orbit":MODS.find(m=>m.id===id).nome;
+const pista=$("#pista");
+pista.innerHTML=PEDIDOS.map(([id,q,r])=>`<article class="pedido" style="--acc:${corDe(id)}"><span class="mod"><span class="dot"></span>${nomeDe(id)}</span><q>${q}</q><p class="resp"><svg width="22" height="22" aria-hidden="true"><use href="#g-resp"/></svg><span>${r}</span></p></article>`).join("")+`<article class="pedido fim" style="--acc:var(--star)"><span class="mod" style="justify-content:center"><span class="dot"></span>E o que mais?</span><q>O próximo pedido é seu.</q><a class="btn lin sm" href="#melhorias">Sugerir um módulo</a></article>`;
+const PALAVRAS=["Finanças","Leitura","Faculdade","Agenda","E-mail","Saúde","Viagens","Casa","Treino","Receitas","Projetos","Notas","Mídia","Carreira","Investimentos","Hábitos","Plantas","Pets"];
+$("#palavras").innerHTML=PALAVRAS.map((w,i)=>`<span class="${i%4===1?"cheia":""}">${w}</span>`).join("");
+
+/* ---------- céu de fundo (2D, leve) ---------- */
+const ceu=$("#ceu"),cx=ceu.getContext("2d");let estrelas=[];
+function montaCeu(){const d=Math.min(devicePixelRatio||1,2);ceu.width=innerWidth*d;ceu.height=innerHeight*d;estrelas=[];let s=7;const r=()=>(s=(s*16807)%2147483647)/2147483647;
+  const n=Math.round(innerWidth*innerHeight/2600);for(let i=0;i<n;i++)estrelas.push({x:r(),y:r(),z:.2+r()*.8,t:r()*6.28,w:r()<.08});}
+function pintaCeu(t,y){const d=ceu.width/innerWidth;cx.clearRect(0,0,ceu.width,ceu.height);
+  for(const e of estrelas){const py=((e.y*innerHeight - y*e.z*.12)%innerHeight+innerHeight)%innerHeight;const a=(.25+.55*e.z)*(reduce?1:.75+.25*Math.sin(t*.0012+e.t));
+    cx.fillStyle=e.w?`rgba(255,236,200,${a})`:`rgba(200,212,255,${a})`;const sz=(e.z*1.3+.3)*d;cx.fillRect(e.x*ceu.width,py*d,sz,sz)}}
+montaCeu();addEventListener("resize",montaCeu);
+
+/* ---------- motor de rolagem ---------- */
+const SEC={};
+for(const id of ["orbita","infinito","ori"]){SEC[id]={el:document.getElementById(id),top:0,len:1,p:0,s:0}}
+function medir(){for(const k in SEC){const s=SEC[k];const r=s.el.getBoundingClientRect();s.top=r.top+scrollY;s.len=Math.max(1,s.el.offsetHeight-innerHeight)}
+  const pal=$("#palco"),jan=$("#janela");pal.style.setProperty("--s",jan.offsetWidth/1280);}
+addEventListener("resize",medir);addEventListener("load",medir);medir();
+
+const H0=.1,T1=.89,SEG=(T1-H0)/NC;
+window.ORBIT.timeline={NC,H0,T1,SEG};
+function irPara(i){const s=SEC.orbita;scrollTo({top:s.top+s.len*(H0+SEG*(i+.5)),behavior:reduce?"auto":"smooth"})}
+
+const heroi=$("#heroi"),dica=$("#dica"),final=$("#final"),nav=$("#nav"),fio=$("#fio");
+function orbita(p){
+  const hq=smooth(0,H0,p);
+  heroi.style.opacity=1-smooth(0,H0*.7,p);
+  heroi.style.transform=`translateY(${-hq*110}px) scale(${1+hq*.06})`;
+  heroi.style.visibility=hq>.99?"hidden":"visible";
+  dica.style.opacity=1-smooth(0,H0*.3,p);
+  const f=(p-H0)/SEG;let ativo=-1;
+  capEls.forEach((el,i)=>{
+    const l=f-i;const a=smooth(-.05,.14,l),b=i===NC-1?smooth(1.02,1.22,l):smooth(.82,1,l);const o=a*(1-b);
+    el.style.opacity=o;el.style.visibility=o<.01?"hidden":"visible";
+    const tx=el.firstElementChild;tx.style.transform=`translateY(${(1-a)*50-b*50}px)`;
+    el.lastElementChild.style.transform=`translateY(${(1-a)*90-b*70}px) scale(${.96+.04*a})`;
+    el.classList.toggle("ativo",o>.5);if(o>.5)ativo=i;
+    for(const it of capItens[i]){it.el.classList.toggle("on",l>=it.at*.9&&o>.02)}
+    if(i===2){const n=Math.round(PERG.length*clamp((l-.02)/.16,0,1));pergunta.textContent=PERG.slice(0,n)}
+    if(i===4){const k=l<.38?0:l<.62?1:2;bento.className="bento o"+k+(l>.24?" novo":"");abasHub.forEach((s,j)=>s.classList.toggle("on",j===k))}
+  });
+  trilho.classList.toggle("on",p>H0*.8&&p<T1+.01);
+  trilhoEls.forEach((b,i)=>b.classList.toggle("on",i===ativo));
+  const o=smooth(T1+.03,T1+.07,p);final.style.opacity=o;final.style.transform=`translateY(${(1-o)*30}px)`;
+}
+const pista2=$("#pista"),palavras=$("#palavras");
+function infinito(p){
+  const w1=pista2.scrollWidth-innerWidth+innerWidth*.08;pista2.style.transform=`translate3d(${-p*Math.max(0,w1)}px,0,0)`;
+  const w2=palavras.scrollWidth-innerWidth;palavras.style.transform=`translate3d(${-(1-p)*Math.max(0,w2)*.6}px,0,0)`;
+}
+const jan=$("#janela"),app=$("#app"),oriFundo=$("#oriFundo"),oriCab=$("#oriCab"),tecla=$("#teclaFlut");
+let faseApp=-1;
+function oriSec(p){
+  const g=smooth(0,.42,p);
+  const s=lerp(.58,1,g),rx=lerp(34,0,g),ty=lerp(16,4.5,g);
+  jan.style.transform=`translateY(${ty}vh) rotateX(${rx}deg) scale(${s})`;
+  oriFundo.style.transform=`translate(-50%,-50%) translateY(${lerp(12,-14,p)}vh) scale(${lerp(.9,1.1,p)})`;
+  oriFundo.style.opacity=lerp(1,.4,g);
+  oriCab.style.opacity=1-smooth(.3,.5,p);oriCab.style.transform=`translateY(${-smooth(.2,.5,p)*40}px)`;
+  const fase=p<.46?0:p<.55?1:p<.63?2:p<.71?3:p<.77?4:p<.83?5:6;
+  if(fase!==faseApp){faseApp=fase;app.className="app";for(let k=1;k<=fase;k++)app.classList.add("f"+k);
+    $("#appSt").textContent=fase===0?"● OUVINDO":fase<3?"● PENSANDO · 3 PASSOS":fase===3?"● ESPERANDO SEU CONFIRMAR":"● FEITO";
+    const feito=fase>=4;$("#appTotal").textContent=feito?"4.570":"4.120";$("#appPct").textContent=feito?"76":"69";$("#appQtd").textContent=feito?"3 lançamentos":"2 lançamentos";
+    $("#appAli").style.width=feito?"90%":"18%";$("#appAliPct").textContent=feito?"90%":"18%";}
+  tecla.classList.toggle("on",p>.86);
+}
+
+let last=performance.now();
+function quadro(now){
+  const dt=Math.min(.05,(now-last)/1000);last=now;
+  const k=reduce?1:1-Math.exp(-dt*7.5);
+  for(const id in SEC){const s=SEC[id];s.p=clamp((scrollY-s.top)/s.len,0,1);s.s=lerp(s.s,s.p,k);if(Math.abs(s.s-s.p)<1e-5)s.s=s.p}
+  const vh=innerHeight;
+  const vis=id=>{const s=SEC[id];return scrollY+vh>s.top-vh*.2&&scrollY<s.top+s.len+vh*1.2};
+  if(vis("orbita"))orbita(SEC.orbita.s);
+  if(vis("infinito"))infinito(SEC.infinito.s);
+  if(vis("ori"))oriSec(SEC.ori.s);
+  if(window.ORBIT.cosmos)window.ORBIT.cosmos.quadro(SEC.orbita.s,dt,vis("orbita"));
+  const total=document.documentElement.scrollHeight-vh;fio.style.width=(scrollY/Math.max(1,total)*100)+"%";
+  nav.classList.toggle("solid",scrollY>SEC.orbita.top+SEC.orbita.len*.995||(scrollY>40&&SEC.orbita.s>H0));
+  pintaCeu(now,scrollY);revela();
+  requestAnimationFrame(quadro);
+}
+
+/* ---------- surgir ao entrar na tela ---------- */
+let surgem=[];
+if(!reduce){surgem=[...document.querySelectorAll(".surge")].filter(el=>el.getBoundingClientRect().top>innerHeight);surgem.forEach((el,i)=>{el.classList.add("fora");el.style.transitionDelay=(i%3)*90+"ms"})}
+function revela(){if(!surgem.length)return;const lim=innerHeight*.92;surgem=surgem.filter(el=>{const r=el.getBoundingClientRect();if(r.top<lim&&r.bottom>0){el.classList.remove("fora");return false}return true})}
+/* contadores */
+const contas=[...document.querySelectorAll("[data-conta]")];
+if("IntersectionObserver" in window){
+  const io2=new IntersectionObserver(es=>{for(const e of es){if(!e.isIntersecting)continue;io2.unobserve(e.target);const b=e.target,alvo=+b.dataset.conta,suf=b.dataset.suf?`<small>${b.dataset.suf}</small>`:"";const t0=performance.now();
+    const passo=t=>{const x=reduce?1:clamp((t-t0)/1600,0,1);b.innerHTML=Math.round(alvo*(1-Math.pow(1-x,3)))+suf;if(x<1)requestAnimationFrame(passo)};requestAnimationFrame(passo)}},{threshold:.6});
+  contas.forEach(b=>io2.observe(b));
+}
+
+/* ---------- conta ---------- */
+let aba="criar";
+function setAba(a){aba=a;$("#aba-criar").setAttribute("aria-selected",a==="criar");$("#aba-entrar").setAttribute("aria-selected",a==="entrar");
+  $("#campoNome").hidden=a!=="criar";$("#campoNovidades").hidden=a!=="criar";$("#c-senha").autocomplete=a==="criar"?"new-password":"current-password";
+  $("#btnConta").textContent=a==="criar"?"Criar minha conta":"Entrar";$("#forca").parentElement.hidden=a!=="criar";$("#forcaTxt").hidden=a!=="criar";
+  $("#form-conta").hidden=false;$("#contaFeita").hidden=true;}
+$("#aba-criar").addEventListener("click",()=>setAba("criar"));$("#aba-entrar").addEventListener("click",()=>setAba("entrar"));
+document.querySelectorAll("[data-aba]").forEach(a=>a.addEventListener("click",()=>setAba(a.dataset.aba)));
+$("#c-senha").addEventListener("input",e=>{const v=e.target.value;let s=0;if(v.length>=8)s++;if(/[A-Z]/.test(v)&&/[a-z]/.test(v))s++;if(/\d/.test(v))s++;if(/[^A-Za-z0-9]/.test(v))s++;if(v.length>=14)s++;
+  const f=$("#forca");f.style.width=(v?Math.max(8,s/5*100):0)+"%";const cores=["#f17070","#f17070","#f9aa60","#edd5a3","#6ed889","#6ed889"];f.style.setProperty("--acc",cores[s]);
+  $("#forcaTxt").textContent=!v?"Use letras, números e um símbolo.":["Muito curta.","Fraca: misture maiúsculas e números.","Razoável: um símbolo deixa mais forte.","Boa.","Forte.","Muito forte."][s];});
+$("#form-conta").addEventListener("submit",e=>{e.preventDefault();const em=$("#c-email").value.trim();const ok=/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em);$("#erroEmail").hidden=ok;if(!ok){$("#c-email").focus();return}
+  $("#form-conta").hidden=true;$("#contaFeita").hidden=false;const nome=$("#c-nome").value.trim().split(" ")[0];
+  $("#contaFeitaTxt").textContent=aba==="criar"?`${nome?nome+", s":"S"}eu lugar está guardado. Quando as contas abrirem, o Ori avisa em ${em}.`:"As contas ainda não abriram. Quando abrirem, este é o lugar para entrar.";});
+$("#contaVoltar").addEventListener("click",()=>setAba(aba));
+
+/* ---------- mural de melhorias ---------- */
+const MOD_COR={Geral:"#a3abbe",Ori:"#edd5a3",Hub:"#edd5a3",Finance:"#80e2b9",Livros:"#f4c677",Estudos:"#f99c7c",Agenda:"#cbe36a","E-mail":"#6fd3e6",Acervo:"#f8a7d4",Status:"#9dc9f7","Um módulo novo":"#d6c2ff"};
+const EST={recebida:"Recebida",analise:"Em análise",plano:"No plano",feita:"Feita"};
+const EXEMPLOS=[
+  {id:"e1",t:"Importar extrato do banco em OFX",d:"Assim eu não preciso lançar à mão o que já está no extrato do Nubank e do Itaú.",tipo:"Ideia nova",mod:"Finance",v:37,est:"analise",ex:1,quando:5},
+  {id:"e2",t:"Atalho para registrar um gasto sem abrir o app",d:"Uma tecla que chama o Ori por cima de qualquer janela.",tipo:"Melhoria",mod:"Ori",v:31,est:"feita",ex:1,quando:9},
+  {id:"e3",t:"Puxar as páginas lidas do Kindle",d:"O Livros atualizaria a cota do dia sozinho quando eu leio no Kindle.",tipo:"Ideia nova",mod:"Livros",v:24,est:"recebida",ex:1,quando:2},
+  {id:"e4",t:"Órbita da casa com contas, compras e manutenção",d:"Um módulo para conta de luz, lista de mercado e lembrete de trocar o filtro.",tipo:"Ideia nova",mod:"Um módulo novo",v:19,est:"plano",ex:1,quando:3},
+  {id:"e5",t:"Resumo da manhã também por voz",d:"Ouvir o resumo enquanto me arrumo, sem olhar para a tela.",tipo:"Melhoria",mod:"Ori",v:15,est:"plano",ex:1,quando:1},
+];
+let ideias=store.get("orbit.melhorias",[]).concat(EXEMPLOS);const votos=new Set(store.get("orbit.votos",[]));let ordem="votos",tipo="Ideia nova",novaId=null;
+function quando(n){return n===0?"agora":n===1?"ontem":`há ${n} dias`}
+function desenhaIdeias(){
+  const l=[...ideias].sort((a,b)=>ordem==="votos"?(b.v+(votos.has(b.id)?1:0))-(a.v+(votos.has(a.id)?1:0)):a.quando-b.quando);
+  $("#ideias").innerHTML=l.map(i=>{const v=i.v+(votos.has(i.id)?1:0);return `<li class="ideia${i.id===novaId?" nova":""}"><button type="button" class="voto" aria-pressed="${votos.has(i.id)}" data-voto="${i.id}" aria-label="Apoiar: ${i.t.replace(/"/g,"&quot;")}, ${v} votos"><svg width="18" height="18"><use href="#g-voto"/></svg><b>${v}</b></button><div style="min-width:0"><h3></h3><p></p><div class="meta"><span class="m" style="--acc:${MOD_COR[i.mod]||"#a3abbe"}"><span class="dot"></span>${i.mod}</span><span>${i.tipo}</span><span class="est ${i.est}"><svg width="10" height="10"><use href="#e-${i.est}"/></svg>${EST[i.est]}</span><span>${quando(i.quando)}</span>${i.ex?'<span class="exemplo">Exemplo</span>':""}</div></div></li>`}).join("");
+  [...$("#ideias").children].forEach((li,k)=>{li.querySelector("h3").textContent=l[k].t;const p=li.querySelector("p");if(l[k].d)p.textContent=l[k].d;else p.remove()});
+  $("#contaIdeias").textContent=`${ideias.length} ideias`;
+}
+$("#ideias").addEventListener("click",e=>{const b=e.target.closest("[data-voto]");if(!b)return;const id=b.dataset.voto;votos.has(id)?votos.delete(id):votos.add(id);store.set("orbit.votos",[...votos]);novaId=null;desenhaIdeias()});
+$("#ordem").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;ordem=b.dataset.ordem;document.querySelectorAll("#ordem button").forEach(x=>x.setAttribute("aria-pressed",x===b));novaId=null;desenhaIdeias()});
+$("#tipos").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;tipo=b.dataset.tipo;document.querySelectorAll("#tipos button").forEach(x=>x.setAttribute("aria-pressed",x===b))});
+$("#form-ideia").addEventListener("submit",e=>{e.preventDefault();const t=$("#i-titulo").value.trim();const ok=t.replace(/[^\p{L}]/gu,"").length>=6;$("#erroTitulo").hidden=ok;if(!ok){$("#i-titulo").focus();return}
+  const nova={id:"u"+Date.now(),t,d:$("#i-texto").value.trim(),tipo,mod:$("#i-mod").value,v:0,est:"recebida",quando:0};
+  const minhas=store.get("orbit.melhorias",[]);minhas.unshift(nova);store.set("orbit.melhorias",minhas);
+  ideias.unshift(nova);votos.add(nova.id);store.set("orbit.votos",[...votos]);novaId=nova.id;ordem="novas";document.querySelectorAll("#ordem button").forEach(x=>x.setAttribute("aria-pressed",x.dataset.ordem==="novas"));
+  $("#i-titulo").value="";$("#i-texto").value="";desenhaIdeias();});
+desenhaIdeias();
+
+requestAnimationFrame(quadro);
+})();
+</script>
+
+<script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}
+</script>
+<script type="module">
+let THREE,EffectComposer,RenderPass,UnrealBloomPass,OutputPass;
+try{
+  THREE=await import("three");
+  ({EffectComposer}=await import("three/addons/postprocessing/EffectComposer.js"));
+  ({RenderPass}=await import("three/addons/postprocessing/RenderPass.js"));
+  ({UnrealBloomPass}=await import("three/addons/postprocessing/UnrealBloomPass.js"));
+  ({OutputPass}=await import("three/addons/postprocessing/OutputPass.js"));
+  iniciar();
+}catch(e){console.warn("Orbit: sem WebGL",e);document.documentElement.classList.add("no-gl")}
+
+function iniciar(){
+const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
+const TAU=Math.PI*2;
+const clamp=(x,a,b)=>Math.min(b,Math.max(a,x));
+const smooth=(a,b,x)=>{x=clamp((x-a)/(b-a),0,1);return x*x*(3-2*x)};
+const {timeline:{NC,H0,T1,SEG}}=window.ORBIT;
+
+const canvas=document.getElementById("cosmos");
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true,powerPreference:"high-performance"});
+let PR=Math.min(devicePixelRatio||1,innerWidth<700?1.5:1.75);
+renderer.setPixelRatio(PR);
+renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.05;
+renderer.outputColorSpace=THREE.SRGBColorSpace;
+const scene=new THREE.Scene();
+const camera=new THREE.PerspectiveCamera(32,1,.1,2000);
+
+const L=new THREE.Vector3(-1,.32,-.62).normalize(); // de onde vem a luz da estrela
+const NOISE=`
+float h(vec3 p){p=fract(p*.3183099+.1);p*=17.;return fract(p.x*p.y*p.z*(p.x+p.y+p.z));}
+float n3(vec3 x){vec3 i=floor(x),f=fract(x);f=f*f*(3.-2.*f);
+ return mix(mix(mix(h(i),h(i+vec3(1,0,0)),f.x),mix(h(i+vec3(0,1,0)),h(i+vec3(1,1,0)),f.x),f.y),
+            mix(mix(h(i+vec3(0,0,1)),h(i+vec3(1,0,1)),f.x),mix(h(i+vec3(0,1,1)),h(i+vec3(1,1,1)),f.x),f.y),f.z);}
+float fbm(vec3 p){float v=0.,a=.5;for(int i=0;i<6;i++){v+=a*n3(p);p=p*2.03+vec3(1.7,9.2,3.1);a*=.5;}return v;}`;
+
+/* ---------- fundo: nebulosa e estrelas ---------- */
+const nebula=new THREE.Mesh(new THREE.SphereGeometry(900,64,32),new THREE.ShaderMaterial({side:THREE.BackSide,depthWrite:false,uniforms:{uL:{value:L}},
+  vertexShader:`varying vec3 vD;void main(){vD=normalize(position);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
+  fragmentShader:NOISE+`varying vec3 vD;uniform vec3 uL;
+  void main(){vec3 d=normalize(vD);
+    float a=fbm(d*2.4);float b=fbm(d*5.-vec3(3.));float w=fbm(d*1.2+vec3(a));
+    float band=exp(-pow((d.y-.25*d.x+.1*sin(d.z*3.))*2.6,2.));
+    vec3 c=vec3(.006,.009,.022);
+    c+=vec3(.03,.05,.13)*pow(w,2.2)*1.4*(.35+band);
+    c+=vec3(.07,.045,.13)*pow(b,3.2)*band*1.1;
+    c+=vec3(.15,.1,.05)*pow(a*b,2.2)*band*.7;
+    float sol=max(dot(d,uL),0.);c+=vec3(1.,.8,.55)*pow(sol,40.)*.25+vec3(.4,.35,.5)*pow(sol,6.)*.04;
+    gl_FragColor=vec4(c,1.);}`}));
+scene.add(nebula);
+function pontosEsfera(n,r0,r1,sz){const g=new THREE.BufferGeometry();const p=new Float32Array(n*3),c=new Float32Array(n*3),s=new Float32Array(n),f=new Float32Array(n);
+  for(let i=0;i<n;i++){const u=Math.random()*2-1,th=Math.random()*TAU,r=r0+(r1-r0)*Math.random();const q=Math.sqrt(1-u*u);p.set([q*Math.cos(th)*r,u*r,q*Math.sin(th)*r],i*3);
+    const w=Math.random();c.set(w<.12?[1,.85,.66]:w<.2?[.72,.8,1]:[.88,.91,1],i*3);s[i]=sz*(.35+Math.pow(Math.random(),4)*3);f[i]=Math.random()*TAU}
+  g.setAttribute("position",new THREE.BufferAttribute(p,3));g.setAttribute("color",new THREE.BufferAttribute(c,3));g.setAttribute("aS",new THREE.BufferAttribute(s,1));g.setAttribute("aF",new THREE.BufferAttribute(f,1));return g}
+const ptMat=(k)=>new THREE.ShaderMaterial({transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,vertexColors:true,uniforms:{uT:{value:0},uPR:{value:PR},uK:{value:k}},
+  vertexShader:`attribute float aS;attribute float aF;uniform float uT;uniform float uPR;uniform float uK;varying vec3 vC;varying float vA;
+   void main(){vC=color;vA=.6+.4*sin(uT*1.1+aF*9.);vec4 mv=modelViewMatrix*vec4(position,1.);gl_PointSize=max(1.,aS*uPR*(uK/-mv.z));gl_Position=projectionMatrix*mv;}`,
+  fragmentShader:`varying vec3 vC;varying float vA;void main(){float d=length(gl_PointCoord-.5);float a=smoothstep(.5,0.,d);a*=a;gl_FragColor=vec4(vC*a*vA*1.3,a*vA);}`});
+const starMat=ptMat(700);
+scene.add(new THREE.Points(pontosEsfera(9000,400,800,2.4),starMat));
+
+/* ---------- a estrela distante, com brilho de lente ---------- */
+function tex(w,h,draw){const c=document.createElement("canvas");c.width=w;c.height=h;draw(c.getContext("2d"),w,h);const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return t}
+const glowTex=tex(256,256,(g,w)=>{const r=g.createRadialGradient(w/2,w/2,0,w/2,w/2,w/2);r.addColorStop(0,"rgba(255,255,255,1)");r.addColorStop(.08,"rgba(255,245,225,.85)");r.addColorStop(.3,"rgba(255,220,170,.18)");r.addColorStop(1,"rgba(255,200,150,0)");g.fillStyle=r;g.fillRect(0,0,w,w)});
+const streakTex=tex(512,32,(g,w,h)=>{const r=g.createLinearGradient(0,0,w,0);r.addColorStop(0,"rgba(160,190,255,0)");r.addColorStop(.5,"rgba(220,230,255,1)");r.addColorStop(1,"rgba(160,190,255,0)");g.fillStyle=r;const v=g.createLinearGradient(0,0,0,h);g.fillRect(0,h/2-1.5,w,3);g.globalAlpha=.25;g.fillRect(0,h/2-5,w,10)});
+const sprite=(t,color,op)=>new THREE.Sprite(new THREE.SpriteMaterial({map:t,color,transparent:true,opacity:op,blending:THREE.AdditiveBlending,depthWrite:false,depthTest:true,toneMapped:false}));
+const estrela=new THREE.Group();estrela.position.copy(L).multiplyScalar(600);scene.add(estrela);
+const e1=sprite(glowTex,"#fff1dc",1);e1.scale.setScalar(70);const e2=sprite(glowTex,"#edd5a3",.35);e2.scale.setScalar(260);const e3=sprite(streakTex,"#cfe0ff",.3);e3.scale.set(420,12,1);
+estrela.add(e1,e2,e3);
+
+/* ---------- o planeta ---------- */
+const RP=4;
+const planeta=new THREE.Group();scene.add(planeta);
+planeta.rotation.set(.28,0,-.32);
+const corpo=new THREE.Group();planeta.add(corpo);
+const planetMat=new THREE.ShaderMaterial({uniforms:{uL:{value:L},uT:{value:0}},
+  vertexShader:`varying vec3 vN;varying vec3 vP;varying vec3 vW;void main(){vP=position;vN=normalize(mat3(modelMatrix)*normal);vec4 w=modelMatrix*vec4(position,1.);vW=w.xyz;gl_Position=projectionMatrix*viewMatrix*w;}`,
+  fragmentShader:NOISE+`varying vec3 vN;varying vec3 vP;varying vec3 vW;uniform vec3 uL;uniform float uT;
+  void main(){vec3 p=normalize(vP);vec3 N=normalize(vN);vec3 V=normalize(cameraPosition-vW);
+    float c=fbm(p*1.9+fbm(p*3.7)*.75);float land=smoothstep(.505,.53,c);
+    float hgt=fbm(p*9.+3.);
+    vec3 ocean=mix(vec3(.004,.016,.045),vec3(.012,.04,.09),fbm(p*6.)*1.2);
+    vec3 ground=mix(vec3(.05,.055,.05),vec3(.16,.13,.09),hgt);ground=mix(ground,vec3(.2,.2,.21),smoothstep(.62,.75,hgt));
+    float polo=smoothstep(.78,.92,abs(p.y)+.06*fbm(p*8.));
+    vec3 base=mix(ocean,ground,land);base=mix(base,vec3(.55,.58,.62),polo);
+    float d=dot(N,uL);float dia=smoothstep(-.12,.4,d);
+    vec3 col=base*dia*1.7;
+    vec3 H=normalize(uL+V);col+=(1.-land)*(1.-polo)*pow(max(dot(N,H),0.),90.)*dia*vec3(1.,.88,.7)*1.1;
+    float nu=fbm(p*3.1+vec3(uT*.006,0.,uT*.003));nu=smoothstep(.48,.78,nu+.18*fbm(p*14.));
+    col=mix(col,vec3(.82,.85,.92)*dia*1.3+vec3(.004,.006,.014),nu*.9);
+    float cid=smoothstep(.8,.97,n3(p*160.))*smoothstep(.55,.85,n3(p*22.))*land*(1.-polo)*(1.-nu)*smoothstep(.05,-.3,d);
+    col+=vec3(1.,.66,.32)*cid*1.3;
+    col+=vec3(.5,.2,.06)*exp(-pow(d*5.,2.))*.18*(1.-nu*.5);
+    float rim=pow(1.-max(dot(N,V),0.),3.5);
+    col+=vec3(.3,.52,1.)*rim*smoothstep(-.35,.5,d)*.85;
+    gl_FragColor=vec4(col,1.);}`});
+corpo.add(new THREE.Mesh(new THREE.SphereGeometry(RP,160,120),planetMat));
+const atmMat=new THREE.ShaderMaterial({side:THREE.BackSide,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,uniforms:{uL:{value:L}},
+  vertexShader:`varying vec3 vN;varying vec3 vW;void main(){vN=normalize(mat3(modelMatrix)*normal);vec4 w=modelMatrix*vec4(position,1.);vW=w.xyz;gl_Position=projectionMatrix*viewMatrix*w;}`,
+  fragmentShader:`varying vec3 vN;varying vec3 vW;uniform vec3 uL;
+  void main(){vec3 V=normalize(cameraPosition-vW);vec3 N=normalize(vN);
+    float f=pow(clamp(1.-abs(dot(N,V))*1.0,0.,1.),1.0);float i=pow(smoothstep(.0,1.,1.-abs(dot(-N,V))),6.);
+    float luz=smoothstep(-.45,.6,dot(-N,uL));
+    vec3 c=mix(vec3(1.,.55,.25),vec3(.32,.58,1.),smoothstep(-.1,.5,dot(-N,uL)));
+    gl_FragColor=vec4(c*i*luz*2.2,1.);}`});
+const atm=new THREE.Mesh(new THREE.SphereGeometry(RP*1.075,96,64),atmMat);planeta.add(atm);
+
+/* ---------- anel de partículas ---------- */
+{const n=innerWidth<700?60000:120000,g=new THREE.BufferGeometry(),p=new Float32Array(n*3),c=new Float32Array(n*3),s=new Float32Array(n),f=new Float32Array(n);
+  let k=0;while(k<n){const r=RP*1.35+Math.random()*RP*1.25;const dens=.5+.5*Math.sin(r*9.)*Math.sin(r*2.3+1.)+(Math.abs(r-RP*2.0)<.12?-1:0);if(Math.random()>clamp(dens,.05,1))continue;
+    const a=Math.random()*TAU;p.set([Math.cos(a)*r,(Math.random()-.5)*.04,Math.sin(a)*r],k*3);const w=.7+.3*Math.random();const warm=Math.random()<.5;c.set(warm?[.95*w,.86*w,.72*w]:[.72*w,.78*w,.92*w],k*3);s[k]=.012+Math.pow(Math.random(),4)*.05;f[k]=Math.random()*TAU;k++}
+  g.setAttribute("position",new THREE.BufferAttribute(p,3));g.setAttribute("color",new THREE.BufferAttribute(c,3));g.setAttribute("aS",new THREE.BufferAttribute(s,1));g.setAttribute("aF",new THREE.BufferAttribute(f,1));
+  const m=new THREE.ShaderMaterial({transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,vertexColors:true,uniforms:{uPR:{value:PR},uL:{value:L},uR:{value:RP}},
+    vertexShader:`attribute float aS;uniform float uPR;uniform vec3 uL;uniform float uR;varying vec3 vC;varying float vS;
+      void main(){vC=color;vec4 w=modelMatrix*vec4(position,1.);vec3 P=w.xyz;float t=dot(P,uL);float dl=length(P-t*uL);vS=(t<0.&&dl<uR)?.08:1.;
+      vec4 mv=viewMatrix*w;gl_PointSize=max(1.,aS*uPR*(900./-mv.z));vS*=clamp(aS*uPR*(900./-mv.z),.25,1.);gl_Position=projectionMatrix*mv;}`,
+    fragmentShader:`varying vec3 vC;varying float vS;void main(){float d=length(gl_PointCoord-.5);float a=smoothstep(.5,.1,d);gl_FragColor=vec4(vC*a*vS*.55,a*.6);}`});
+  m.userData.pr=true;planeta.add(new THREE.Points(g,m));window.__anelMat=m}
+
+/* ---------- lua e órbitas distantes ---------- */
+const sol=new THREE.DirectionalLight("#fff0dc",2.6);sol.position.copy(L).multiplyScalar(50);scene.add(sol);
+scene.add(new THREE.AmbientLight("#22305a",.25));
+const luaMat=new THREE.ShaderMaterial({uniforms:{uL:{value:L}},
+  vertexShader:`varying vec3 vN;varying vec3 vP;void main(){vP=position;vN=normalize(mat3(modelMatrix)*normal);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
+  fragmentShader:NOISE+`varying vec3 vN;varying vec3 vP;uniform vec3 uL;void main(){vec3 p=normalize(vP);float n=fbm(p*5.);float cr=smoothstep(.55,.6,n3(p*14.))*.25;
+    vec3 c=vec3(.42,.4,.38)*(.6+.6*n)-cr*.2;float d=max(dot(normalize(vN),uL),0.);float rim=pow(1.-abs(normalize(vN).z),3.);gl_FragColor=vec4(c*pow(d,.8)*1.6+vec3(.02,.025,.04)+vec3(.15,.2,.35)*rim*.35,1.);}`});
+const luaPivo=new THREE.Group();planeta.add(luaPivo);
+const lua=new THREE.Mesh(new THREE.SphereGeometry(.42,64,48),luaMat);lua.position.set(RP*3.4,.5,0);luaPivo.add(lua);
+const orbitaLua=new THREE.Line(new THREE.BufferGeometry().setFromPoints(Array.from({length:257},(_,i)=>{const a=i/256*TAU;return new THREE.Vector3(Math.cos(a)*RP*3.4,.5,Math.sin(a)*RP*3.4)})),new THREE.LineBasicMaterial({color:"#a8baff",transparent:true,opacity:.1,depthWrite:false}));
+planeta.add(orbitaLua);
+/* ---------- pós ---------- */
+const composer=new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene,camera));
+const bloom=new UnrealBloomPass(new THREE.Vector2(256,256),.55,.6,.82);composer.addPass(bloom);
+composer.addPass(new OutputPass());
+
+let W=1,H=1;
+function tamanho(){const r=canvas.parentElement.getBoundingClientRect();W=r.width;H=r.height;renderer.setSize(W,H,false);composer.setPixelRatio(PR);composer.setSize(W,H);camera.aspect=W/H;camera.updateProjectionMatrix()}
+addEventListener("resize",tamanho);tamanho();
+
+/* ---------- caminho da câmera ---------- */
+const v=(x,y,z)=>new THREE.Vector3(x,y,z);
+// [progresso, posição, olhar] — no desktop o planeta fica à direita, atrás dos quadros
+function chaves(estreito){
+  const c=(i,a)=>H0+SEG*(i+a);
+  if(estreito)return[
+    [0,v(0,3,26),v(0,6.2,0)],[H0,v(-2,2,19),v(0,-3.6,0)],
+    [c(0,.6),v(-3,1.5,17),v(0,-3.8,0)],[c(1,.4),v(6,4,16),v(0,-3.4,0)],[c(1,.6),v(6,4,16),v(0,-3.4,0)],
+    [c(2,.4),v(9,-1,13),v(0,-3.2,0)],[c(2,.6),v(9,-1,13),v(0,-3.2,0)],[c(3,.4),v(-4,6,15),v(0,-3.8,0)],[c(3,.6),v(-4,6,15),v(0,-3.8,0)],
+    [c(4,.4),v(2,-3,18),v(0,-3,0)],[T1,v(2,-3,18),v(0,-3,0)],[1,v(0,26,110),v(0,0,-40)]];
+  return[
+    [0,v(0,2.2,23),v(0,6.1,0)],
+    [H0,v(-5,1.6,17),v(-6.2,.4,0)],[c(0,.6),v(-5.6,1.2,16.4),v(-6.4,.3,0)],
+    [c(1,.4),v(4,5,16),v(-6.6,0,0)],[c(1,.6),v(4.4,5.2,15.6),v(-6.6,0,0)],
+    [c(2,.4),v(-1,-4.2,15.5),v(-6.6,.9,0)],[c(2,.6),v(-1.2,-4.4,15),v(-6.6,.9,0)],
+    [c(3,.4),v(9,6,13),v(-5.4,-.6,0)],[c(3,.6),v(9.4,6.2,12.6),v(-5.4,-.6,0)],
+    [c(4,.4),v(2,-4,14.5),v(-6.4,-.8,0)],[T1,v(2.2,-4.2,14),v(-6.4,-.8,0)],
+    [1,v(0,24,96),v(0,0,-40)]];
+}
+const pos=v(0,0,0),olhar=v(0,0,0),tmp=v(0,0,0);
+function amostra(K,p){if(p<=K[0][0]){pos.copy(K[0][1]);olhar.copy(K[0][2]);return}
+  for(let i=0;i<K.length-1;i++){const a=K[i],b=K[i+1];if(p<=b[0]){const t=smooth(a[0],b[0],p);pos.copy(a[1]).lerp(b[1],t);olhar.copy(a[2]).lerp(b[2],t);return}}
+  const z=K[K.length-1];pos.copy(z[1]);olhar.copy(z[2])}
+
+let t=0,acum=0,quadros=0;
+function quadro(p,dt,visivel){
+  if(!visivel)return;
+  t+=reduce?0:dt;
+  const K=chaves(W/H<.9);amostra(K,p);
+  if(!reduce){pos.x+=Math.sin(t*.11)*.3;pos.y+=Math.sin(t*.15)*.18}
+  camera.position.copy(pos);camera.lookAt(olhar);
+  corpo.rotation.y=t*.018+p*1.6;
+  luaPivo.rotation.y=t*.03+p*.9;
+  planetMat.uniforms.uT.value=t;starMat.uniforms.uT.value=t;
+    // brilho de lente segue a visibilidade da estrela
+  tmp.copy(estrela.position).project(camera);const dentro=tmp.z<1&&Math.abs(tmp.x)<1.3&&Math.abs(tmp.y)<1.3;
+  e3.material.opacity=dentro?.22*(1-Math.min(1,Math.hypot(tmp.x,tmp.y)*.5)):0;
+  composer.render();
+  quadros++;acum+=dt;if(quadros===50){const med=acum/50;quadros=0;acum=0;if(med>.026&&PR>1){PR=Math.max(1,PR-.25);renderer.setPixelRatio(PR);starMat.uniforms.uPR.value=PR;window.__anelMat.uniforms.uPR.value=PR;tamanho()}}
+}
+window.ORBIT.cosmos={quadro};
+}
+</script>
+
+</body>
+</html>
